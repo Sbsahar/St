@@ -76,7 +76,7 @@ def register_download_handlers(bot, is_user_admin):
         else:
             bot.send_message(chat_id, "❌ حدث خطأ أثناء التحميل.")
 
-    print("✅ تم تسجيل أوامر التحميل بنجاح")
+    print("✅ تم تسجيل أوامر التحميل بنجاح.")
 
 # دالة تحميل الفيديو أو الصوت
 def download_media(url, format_type):
@@ -85,9 +85,10 @@ def download_media(url, format_type):
 
     output_path = os.path.join(output_dir, "%(title)s.%(ext)s")
     
+    # تعديل الخيارات لطلب أفضل تنسيق متاح
     ydl_opts = {
         "outtmpl": output_path,
-        "format": "bestaudio/best" if format_type == "audio" else "bestvideo[height<=480]+bestaudio/best[height<=480]",
+        "format": "bestvideo+bestaudio/best" if format_type == "video" else "bestaudio",
         "merge_output_format": "mp4" if format_type == "video" else "mp3",
         "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}] if format_type == "audio" else []
     }
