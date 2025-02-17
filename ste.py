@@ -1,3 +1,4 @@
+from sh1 import register_download_handlers
 import telebot
 import re
 import opennsfw2 as n2
@@ -193,22 +194,17 @@ def get_all_members(chat_id):
         offset += len(chunk)
     return members
     
-def is_admin(chat_id, user_id):
+def is_user_admin(chat_id, user_id):
     """التحقق من صلاحية المشرف"""
     try:
-        member = bot.get_chat_member(chat_id, user_id)
-        return member.status in ['administrator', 'creator']
-    except:
+        admins = bot.get_chat_administrators(chat_id)
+        return any(admin.user.id == user_id for admin in admins)
+    except Exception as e:
+        print(f"خطأ في التحقق من الصلاحيات: {e}")
         return False
 
-def validate_chat_id(chat_id):
-    """التحقق من صحة معرف الدردشة"""
-    try:
-        if str(chat_id).startswith("-100") and len(str(chat_id)) > 12:
-            return True
-        return False
-    except:
-        return False
+# تمرير `bot` و `is_user_admin` إلى `sh1.py`
+register_download_handlers(bot, is_user_admin)
 
 def check_image_safety(image_path):
     """فحص إذا كانت الصورة غير مناسبة باستخدام مكتبة OpenNSFW2"""
