@@ -22,33 +22,33 @@ def register_download_handlers(bot, is_user_admin):
         bot.send_message(chat_id, "🔹 أهلاً بك في بوت تحميل الفيديو والصوت!\nأرسل الرابط مباشرة.")
 
     @bot.message_handler(func=lambda message: message.text and ("instagram.com" in message.text or "facebook.com" in message.text))
-def handle_link(message):
-    chat_id = message.chat.id
-    user_id = message.from_user.id
+    def handle_link(message):
+        chat_id = message.chat.id
+        user_id = message.from_user.id
 
-    # التحقق من صلاحيات المشرف
-    if not is_user_admin(chat_id, user_id):
-        bot.send_message(chat_id, "❌ هذا الأمر متاح فقط للمشرفين.")
-        return
+        # التحقق من صلاحيات المشرف
+        if not is_user_admin(chat_id, user_id):
+            bot.send_message(chat_id, "❌ هذا الأمر متاح فقط للمشرفين.")
+            return
 
-    url = message.text.strip()  # إزالة أي مسافات غير ضرورية
-    if url.startswith("/"):  # إذا بدأ الرابط بـ "/"
-        url = url[1:].strip()  # إزالة الـ "/" من البداية إذا كانت موجودة
+        url = message.text.strip()  # إزالة أي مسافات غير ضرورية
+        if url.startswith("/"):  # إذا بدأ الرابط بـ "/"
+            url = url[1:].strip()  # إزالة الـ "/" من البداية إذا كانت موجودة
 
-    # تحقق من أن الرابط يبدأ بـ http
-    if not url.startswith("http"):
-        bot.send_message(chat_id, "❌ الرابط غير صالح. تأكد من إرسال رابط صحيح.")
-        return
+        # تحقق من أن الرابط يبدأ بـ http
+        if not url.startswith("http"):
+            bot.send_message(chat_id, "❌ الرابط غير صالح. تأكد من إرسال رابط صحيح.")
+            return
 
-    unique_id = str(uuid.uuid4())[:8]  # إنشاء معرف فريد
-    url_store[unique_id] = url  # تخزين الرابط
+        unique_id = str(uuid.uuid4())[:8]  # إنشاء معرف فريد
+        url_store[unique_id] = url  # تخزين الرابط
 
-    markup = telebot.types.InlineKeyboardMarkup()
-    video_button = telebot.types.InlineKeyboardButton("📹 تحميل فيديو", callback_data=f"video_{unique_id}")
-    audio_button = telebot.types.InlineKeyboardButton("🎵 تحميل مقطع صوتي", callback_data=f"audio_{unique_id}")
-    markup.add(video_button, audio_button)
+        markup = telebot.types.InlineKeyboardMarkup()
+        video_button = telebot.types.InlineKeyboardButton("📹 تحميل فيديو", callback_data=f"video_{unique_id}")
+        audio_button = telebot.types.InlineKeyboardButton("🎵 تحميل مقطع صوتي", callback_data=f"audio_{unique_id}")
+        markup.add(video_button, audio_button)
 
-    bot.send_message(chat_id, "🔹 اختر نوع التحميل:", reply_markup=markup)
+        bot.send_message(chat_id, "🔹 اختر نوع التحميل:", reply_markup=markup)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("video_") or call.data.startswith("audio_"))
     def handle_download(call):
@@ -76,7 +76,7 @@ def handle_link(message):
         else:
             bot.send_message(chat_id, "❌ حدث خطأ أثناء التحميل.")
 
-    print("✅ تم تسجيل أوامر التحميل بنجاح في sh1.py")
+    print("✅ تم تسجيل أوامر التحميل بنجاح")
 
 # دالة تحميل الفيديو أو الصوت
 def download_media(url, format_type):
