@@ -19,9 +19,9 @@ def register_download_handlers(bot, is_user_admin):
             bot.send_message(chat_id, "❌ هذا الأمر متاح فقط للمشرفين.")
             return
 
-        bot.send_message(chat_id, "🧸\nأرسل الرابط مباشرة مع الأمر /")
+        bot.send_message(chat_id, "🔹 أهلاً بك في بوت تحميل الفيديو والصوت!\nأرسل الرابط مباشرة.")
 
-    @bot.message_handler(func=lambda message: message.text and (message.text.startswith("/") and ("instagram.com" in message.text or "facebook.com" in message.text)))
+    @bot.message_handler(func=lambda message: message.text and ("instagram.com" in message.text or "facebook.com" in message.text))
     def handle_link(message):
         chat_id = message.chat.id
         user_id = message.from_user.id
@@ -31,7 +31,7 @@ def register_download_handlers(bot, is_user_admin):
             bot.send_message(chat_id, "❌ هذا الأمر متاح فقط للمشرفين.")
             return
 
-        url = message.text.split("/", 1)[1]  # استخراج الرابط بعد "/"
+        url = message.text.strip()  # استخراج الرابط بالكامل
         unique_id = str(uuid.uuid4())[:8]  # إنشاء معرف فريد
         url_store[unique_id] = url  # تخزين الرابط
 
@@ -64,6 +64,7 @@ def register_download_handlers(bot, is_user_admin):
                     bot.send_audio(chat_id, media)
 
             os.remove(file_path)  # حذف الملف بعد الإرسال
+            bot.send_message(chat_id, "✅ تم التحميل بنجاح!")
         else:
             bot.send_message(chat_id, "❌ حدث خطأ أثناء التحميل.")
 
@@ -71,11 +72,15 @@ def register_download_handlers(bot, is_user_admin):
 
 # دالة تحميل الفيديو أو الصوت
 def download_media(url, format_type):
-    output_path = "downloads/%(title)s.%(ext)s"
+    output_dir = "downloads"
+    os.makedirs(output_dir, exist_ok=True)  # التأكد من وجود المجلد
+
+    output_path = os.path.join(output_dir, "%(title)s.%(ext)s")
     
     ydl_opts = {
         "outtmpl": output_path,
-        "format": "bestaudio" if format_type == "audio" else "bestvideo[height<=480]+bestaudio/best[height<=480]",
+        "format": "bestaudio/best" if format_type == "audio" else "bestvideo[height<=480]+bestaudio/best[height<=480]",
+        "merge_output_format": "mp4" if format_type == "video" else "mp3",
         "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}] if format_type == "audio" else []
     }
 
@@ -87,4 +92,5 @@ def download_media(url, format_type):
                 file_name = file_name.rsplit(".", 1)[0] + ".mp3"
             return file_name
     except Exception as e:
+        print(f"Error: {e}")
         return None
