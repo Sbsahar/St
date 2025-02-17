@@ -6,6 +6,12 @@ import uuid
 # قاموس لتخزين الروابط المرتبطة بمعرف فريد
 url_store = {}
 
+# بيانات تسجيل الدخول
+instagram_username = 'sahaart2025'
+instagram_password = '0964746601as'
+facebook_username = 'sarhher487'
+facebook_password = '0964746601ass'
+
 def register_download_handlers(bot, is_user_admin):
     """ تسجيل الأوامر الخاصة بالتحميل وربطها بالبوت """
 
@@ -19,7 +25,7 @@ def register_download_handlers(bot, is_user_admin):
             bot.send_message(chat_id, "❌ هذا الأمر متاح فقط للمشرفين.")
             return
 
-        bot.send_message(chat_id, "🔹 أهلاً بك في بوت تحميل الفيديو والصوت!\nأرسل الرابط مباشرة.")
+        bot.send_message(chat_id, "🔹 أرسل رابط من Instagram أو Facebook لتحميله.")
 
     @bot.message_handler(func=lambda message: message.text and ("instagram.com" in message.text or "facebook.com" in message.text))
     def handle_link(message):
@@ -90,7 +96,12 @@ def download_media(url, format_type):
         "outtmpl": output_path,
         "format": "bestvideo+bestaudio/best" if format_type == "video" else "bestaudio",
         "merge_output_format": "mp4" if format_type == "video" else "mp3",
-        "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}] if format_type == "audio" else []
+        "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}] if format_type == "audio" else [],
+        "username": instagram_username,
+        "password": instagram_password,
+        "cookiefile": "cookies.txt",  # يمكنك استخدام ملف الكوكيز لتسجيل الدخول
+        "facebook_username": facebook_username,
+        "facebook_password": facebook_password,
     }
 
     try:
