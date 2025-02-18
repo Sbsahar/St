@@ -6,11 +6,8 @@ import uuid
 # قاموس لتخزين الروابط المرتبطة بمعرف فريد
 url_store = {}
 
-# بيانات تسجيل الدخول
-instagram_username = 'sahaart2025'
-instagram_password = '0964746601as'
-facebook_username = 'sarhher487'
-facebook_password = '0964746601ass'
+# اسم ملف تعريف الارتباط الموحد
+cookies_file = 'cookies(2).txt'  # ملف تعريف الارتباط الموحد لفيسبوك وإنستغرام
 
 def register_download_handlers(bot, is_user_admin):
     """ تسجيل الأوامر الخاصة بالتحميل وربطها بالبوت """
@@ -97,11 +94,7 @@ def download_media(url, format_type):
         "format": "bestvideo+bestaudio/best" if format_type == "video" else "bestaudio",
         "merge_output_format": "mp4" if format_type == "video" else "mp3",
         "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}] if format_type == "audio" else [],
-        "username": instagram_username,
-        "password": instagram_password,
-        "cookiefile": "cookies.txt",  # يمكنك استخدام ملف الكوكيز لتسجيل الدخول
-        "facebook_username": facebook_username,
-        "facebook_password": facebook_password,
+        "cookiefile": cookies_file,  # استخدام ملف الكوكيز الموحد
     }
 
     try:
