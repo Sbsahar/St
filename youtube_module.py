@@ -43,7 +43,7 @@ class YoutubeModule:
             msg = self.bot.send_photo(
                 message.chat.id,
                 thumbnail_url,
-                caption=f"<b>نتائج البحث عن:</b> <i>{query}</i>\n\n<b>MP3 اختر فيديو لتحميله</b>",
+                caption=f"<i>نتائج البحث عن:</i> {query}\n\nاختر فيديو لتحميله أو مشاهدته",
                 reply_markup=markup,
                 parse_mode='HTML'
             )
@@ -76,7 +76,7 @@ class YoutubeModule:
                     markup.row(btn_video, btn_download)
 
                 self.bot.edit_message_media(
-                    media=types.InputMediaPhoto(new_thumbnail, caption=f"<b>نتائج البحث عن:</b> <i>{query}</i>\n\n<b>اختر فيديو لمشاهدته أو تحميله</b>"),
+                    media=types.InputMediaPhoto(new_thumbnail, caption=f"<i>نتائج البحث عن:</i> {query}\n\nاختر فيديو لمشاهدته أو تحميله"),
                     chat_id=chat_id,
                     message_id=self.user_search_data[chat_id]["message_id"],
                     reply_markup=markup
@@ -84,17 +84,17 @@ class YoutubeModule:
 
             elif data[0] == "youtube_download":
                 video_id = data[1]
-                loading_msg = self.bot.send_message(chat_id, '<b>جاري التحميل... 🔄</b>', parse_mode='HTML')
+                loading_msg = self.bot.send_message(chat_id, '<i>جاري التحميل... 🔄</i>', parse_mode='HTML')
 
                 progress_stages = [
                     "█▒▒▒▒▒▒▒▒▒10%", "██▒▒▒▒▒▒▒▒20%", "███▒▒▒▒▒▒▒30%",
-                    "████▒▒▒▒▒▒40%", "█████▒▒▒▒▒50%", "████████▒▒80%",
+                    "████▒▒▒▒▒▒40%", "█████▒▒▒▒▒▒50%", "████████▒▒80%",
                     "██████████100%", "تم التحميل 🎶 جاري الرفع..."
                 ]
 
                 for stage in progress_stages:
                     time.sleep(1)
-                    self.bot.edit_message_text(f"<b>{stage}</b>", chat_id=chat_id, message_id=loading_msg.message_id, parse_mode='HTML')
+                    self.bot.edit_message_text(f"<i>{stage}</i>", chat_id=chat_id, message_id=loading_msg.message_id, parse_mode='HTML')
 
                 self.download_media(call, 'audio', video_id, 'bestaudio', loading_msg)
 
@@ -103,7 +103,7 @@ class YoutubeModule:
         cookies = self.load_cookies_from_file(cookies_file_path)
 
         if not cookies:
-            self.bot.edit_message_text('<b>فشل تحميل الكوكيز! يرجى التأكد من الملف.</b>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
+            self.bot.edit_message_text('<i>فشل تحميل الكوكيز! يرجى التأكد من الملف.</i>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
             return
 
         ydl_opts = {
@@ -139,7 +139,7 @@ class YoutubeModule:
                     pass
 
         except Exception as e:
-            self.bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
+            self.bot.edit_message_text(f'<i>خطأ أثناء التحميل:</i> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
 
     def load_cookies_from_file(self, file_path):
         if os.path.exists(file_path):
