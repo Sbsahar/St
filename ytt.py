@@ -3,7 +3,6 @@ import yt_dlp
 from googleapiclient.discovery import build
 import telebot
 from telebot import types
-import json
 
 # إعدادات البوت
 TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
@@ -99,12 +98,11 @@ def show_download_options(message, url):
 
 # تحميل الصوت
 def download_media(call, download_type, url, quality, loading_msg):
-    # تحميل الكوكيز من الملف
-    cookies_file_path = 'cookies.json'
-    if os.path.exists(cookies_file_path):
-        with open(cookies_file_path, 'r') as cookies_file:
-            cookies = json.load(cookies_file)
-    else:
+    # تحميل الكوكيز من الملف النصي
+    cookies_file_path = 'cookies.txt'
+    cookies = load_cookies_from_file(cookies_file_path)
+    
+    if not cookies:
         bot.edit_message_text('<b>فشل تحميل الكوكيز! يرجى التأكد من الملف.</b>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
         return
 
@@ -140,6 +138,14 @@ def download_media(call, download_type, url, quality, loading_msg):
             bot.edit_message_text('<b>تم رفع الملف بنجاح🎧✅</b>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
     except Exception as e:
         bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
+
+# دالة لتحميل الكوكيز من ملف TXT
+def load_cookies_from_file(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as file:
+            cookies = file.readlines()
+            return {line.split('=')[0].strip(): line.split('=')[1].strip() for line in cookies if '=' in line}
+    return None
 
 # تشغيل البوت
 if __name__ == '__main__':
