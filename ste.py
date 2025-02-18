@@ -1,5 +1,5 @@
 from sh1 import register_download_handlers
-from ytt.py import *
+from ytt import bot 
 import telebot
 import re
 import opennsfw2 as n2
@@ -2354,8 +2354,5 @@ def send_auto_reply(target_msg, original_message=None):
 load_banned_words()         
 load_detection_status()          
 reset_daily_reports()        
-try:
-    print("أي أنا شغال أموري تمام ")
+if __name__ == "__main__":
     bot.infinity_polling()
-except Exception as e:
-    print(f"🚫 في غلط مارح اقدر أشتغل")
