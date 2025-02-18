@@ -86,9 +86,9 @@ def register_download_handlers(bot, is_user_admin):
             with open(file_path, "rb") as media:
                 caption = "<b>تـم التحميل بواسطـة @SY_SBbot</b>\n"
                 if "facebook.com" in url:
-                    caption += f"<b>تـم التحميل مـن </b><a href='{url}'>الرابط هنا</a>"
+                    caption += f"<b>تـم التحميل مـن ➜</b><a href='{url}'>الرابط هنا</a>"
                 elif "instagram.com" in url:
-                    caption += f"<b>تـم التحميل ↩️مـن </b><a href='{url}'>الرابط هنا</a>"
+                    caption += f"<b>تـم التحميل مـن ➜</b><a href='{url}'>الرابط هنا</a>"
 
                 if format_type == "video":
                     bot.send_video(chat_id, media, caption=caption, parse_mode="HTML")
@@ -142,4 +142,4 @@ def handle_story_error(chat_id):
     bot.send_message(
         chat_id,
         "❌ عذرًا ربما يكون الفيديو هو قصة من Instagram أو Facebook. للأسف لا أستطيع تحميل القصص بسبب سياسات المنصة يمكنك استخدام تطبيقات خارجية لتحميل القصص❤️\nلكن يمكنني مساعدتك في تحميل الفيديوهات العامة والريلز"
-                                            )
+    )
