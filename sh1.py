@@ -67,8 +67,20 @@ def register_download_handlers(bot, is_user_admin):
             return
 
         url = url_store.pop(unique_id)  # استرجاع الرابط وحذفه من التخزين
-        bot.send_message(chat_id, "⏳ جاري التحميل، انتظر قليلاً...")
 
+        # ارسال رسالة بداية التحميل مع التقدم التدريجي
+        progress_msg = bot.send_message(chat_id, "⏳ جاري التحميل، انتظر قليلاً...\n■□□□□ 10%")
+        
+        # التحديث التدريجي للرسالة كل ثانيتين
+        for i in range(1, 6):
+            time.sleep(2)
+            progress = "■" * i + "□" * (5 - i)
+            bot.edit_message_text(f"⏳ جاري التحميل، انتظر قليلاً...\n{progress} {i * 20}%", chat_id, progress_msg.message_id)
+
+        # تحديث الرسالة إلى "➳ 𝑳𝒐𝒂𝒅𝒊𝒏𝒈.." قبل تحميل الملف
+        bot.edit_message_text("➳ 𝑳𝒐𝒂𝒅𝒊𝒏𝒈..", chat_id, progress_msg.message_id)
+
+        # تحميل الملف
         file_path = download_media(url, format_type)
         if file_path and os.path.exists(file_path):
             with open(file_path, "rb") as media:
@@ -81,6 +93,9 @@ def register_download_handlers(bot, is_user_admin):
             bot.send_message(chat_id, "✅ تم التحميل بنجاح!")
         else:
             bot.send_message(chat_id, "❌ حدث خطأ أثناء التحميل.")
+
+        # حذف رسالة "➳ 𝑳𝒐𝒂𝒅𝒊𝒏𝒈.."
+        bot.delete_message(chat_id, progress_msg.message_id)
 
     print("✅ تم تسجيل أوامر التحميل بنجاح.")
 
