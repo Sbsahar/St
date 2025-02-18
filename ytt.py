@@ -11,7 +11,7 @@ BOT_USERNAME = '@SY_SBbot'
 
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
 
-bot = telebot.TeleBot('YOUR_BOT_TOKEN')
+bot = telebot.TeleBot('7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g')
 
 user_search_data = {}
 
