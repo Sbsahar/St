@@ -98,7 +98,7 @@ def show_download_options(message, url):
 
 # تحميل الصوت
 def download_media(call, download_type, url, quality, loading_msg):
-    # تحميل الكوكيز من الملف النصي
+    # تحميل الكوكيز من الملف النصي بتنسيق Netscape
     cookies_file_path = 'cookies.txt'
     cookies = load_cookies_from_file(cookies_file_path)
     
@@ -139,12 +139,22 @@ def download_media(call, download_type, url, quality, loading_msg):
     except Exception as e:
         bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
 
-# دالة لتحميل الكوكيز من ملف TXT
+# دالة لتحميل الكوكيز من ملف TXT بتنسيق Netscape
 def load_cookies_from_file(file_path):
     if os.path.exists(file_path):
         with open(file_path, 'r') as file:
             cookies = file.readlines()
-            return {line.split('=')[0].strip(): line.split('=')[1].strip() for line in cookies if '=' in line}
+            # تنسيق الكوكيز بتنسيق Netscape
+            cookies_dict = {}
+            for line in cookies:
+                if line.startswith('#') or line.strip() == '':
+                    continue
+                parts = line.strip().split('\t')
+                if len(parts) > 6:
+                    cookie_name = parts[5].strip()
+                    cookie_value = parts[6].strip()
+                    cookies_dict[cookie_name] = cookie_value
+            return cookies_dict
     return None
 
 # تشغيل البوت
