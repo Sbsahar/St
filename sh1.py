@@ -84,13 +84,19 @@ def register_download_handlers(bot, is_user_admin):
         file_path = download_media(url, format_type)
         if file_path and os.path.exists(file_path):
             with open(file_path, "rb") as media:
+                caption = "<b>تـم التحميل بواسطـة @SY_SBbot</b>\n"
+                if "facebook.com" in url:
+                    caption += f"<b>تم التحميل من </b><a href='{url}'>الرابط هنا</a>"
+                elif "instagram.com" in url:
+                    caption += f"<b>تم التحميل من </b><a href='{url}'>الرابط هنا</a>"
+
                 if format_type == "video":
-                    bot.send_video(chat_id, media, caption="<b>تـم التحميل بواسطـة @SY_SBbot</b>", parse_mode="HTML")
+                    bot.send_video(chat_id, media, caption=caption, parse_mode="HTML")
                 else:
-                    bot.send_audio(chat_id, media, caption="<b>تم التحميل بواسطة @SY_SBbot</b>", parse_mode="HTML")
+                    bot.send_audio(chat_id, media, caption=caption, parse_mode="HTML")
 
             os.remove(file_path)  # حذف الملف بعد الإرسال
-            bot.send_message(chat_id, "<b> تـم التحـميل بنـجاح</b> ♡𓏧♡", parse_mode="HTML")
+            bot.send_message(chat_id, "<b> تـم التحـميل بنجاح</b> ♡𓏧♡", parse_mode="HTML")
         else:
             bot.send_message(chat_id, "❌ حدث خطأ أثناء التحميل.")
 
@@ -136,4 +142,4 @@ def handle_story_error(chat_id):
     bot.send_message(
         chat_id,
         "❌ عذرًا ربما يكون الفيديو هو قصة من Instagram أو Facebook. للأسف لا أستطيع تحميل القصص بسبب سياسات المنصة يمكنك استخدام تطبيقات خارجية لتحميل القصص❤️\nلكن يمكنني مساعدتك في تحميل الفيديوهات العامة والريلز"
-    )
+            )
