@@ -6,9 +6,9 @@ import telebot
 from telebot import types
 
 # إعدادات البوت
-TOKEN = 'توكن البوت'
+TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
 CHANNEL_ID = '@SYR_SB'
-YOUTUBE_API_KEY = 'API_KEY'
+YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
 BOT_USERNAME = '@SY_SBbot'
 
 # مسار ملفات تعريف الارتباط
