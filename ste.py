@@ -1,4 +1,5 @@
 from sh1 import register_download_handlers
+from youtube_module import YoutubeModule
 import telebot
 import re
 import opennsfw2 as n2
@@ -25,12 +26,16 @@ logging.basicConfig(
 )
 
 TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
+YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
+BOT_USERNAME = '@SY_SBbot'
 CHANNEL_URL = 'https://t.me/SYR_SB'
 CHANNEL_USERNAME = 'SYR_SB' 
 DEVELOPER_CHAT_ID = '6789179634'
 DEVELOPER_CHAT_ID = 6789179634
 VIDEO_URL = "https://t.me/srevbo67/5" 
 bot = telebot.TeleBot(TOKEN)
+youtube_module = YoutubeModule(bot, YOUTUBE_API_KEY, BOT_USERNAME)
+youtube_module.setup_handlers()
 welcome_messages = {}
 active_mentions = {}
 stop_mentions = {}
@@ -2353,8 +2358,5 @@ def send_auto_reply(target_msg, original_message=None):
 load_banned_words()         
 load_detection_status()          
 reset_daily_reports()        
-try:
-    print("أي أنا شغال أموري تمام ")
-    bot.infinity_polling()
-except Exception as e:
-    print(f"🚫 في غلط مارح اقدر أشتغل")
+if __name__ == '__main__':
+    bot.polling(none_stop=True)
