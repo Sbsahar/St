@@ -20,10 +20,10 @@ def register_download_handlers(bot, is_user_admin):
 
         # التحقق مما إذا كان المستخدم مشرفًا
         if not is_user_admin(chat_id, user_id):
-            bot.send_message(chat_id, "❌ هذا الأمر متاح فقط للمشرفين.")
+            bot.send_message(chat_id, "❌ لاتلعب التحميل فقط للمشرفين.")
             return
 
-        bot.send_message(chat_id, "🔹 أرسل رابط من Instagram أو Facebook لتحميله.")
+        bot.send_message(chat_id, "🔹 أرسـل رابـط مـن Instagram أو Facebook لتحميله.")
 
     @bot.message_handler(func=lambda message: message.text and ("instagram.com" in message.text or "facebook.com" in message.text))
     def handle_link(message):
@@ -41,15 +41,15 @@ def register_download_handlers(bot, is_user_admin):
 
         # تحقق من أن الرابط يبدأ بـ http
         if not url.startswith("http"):
-            bot.send_message(chat_id, "❌ الرابط غير صالح. تأكد من إرسال رابط صحيح.")
+            bot.send_message(chat_id, "❌ الرابط مو شغال تأكد من الرابط .")
             return
 
         unique_id = str(uuid.uuid4())[:8]  # إنشاء معرف فريد
         url_store[unique_id] = url  # تخزين الرابط
 
         markup = telebot.types.InlineKeyboardMarkup(row_width=1)  # تغيير العرض ليكون عمودي
-        video_button = telebot.types.InlineKeyboardButton("▶ تحميل فيديو", callback_data=f"video_{unique_id}")
-        audio_button = telebot.types.InlineKeyboardButton("🎧 تحميل مقطع صوتي", callback_data=f"audio_{unique_id}")
+        video_button = telebot.types.InlineKeyboardButton("▶ تحـميل فيديـو", callback_data=f"video_{unique_id}")
+        audio_button = telebot.types.InlineKeyboardButton("🎧 تحـميل مقـطع صـوتي", callback_data=f"audio_{unique_id}")
         markup.add(video_button, audio_button)
 
         message_sent = bot.send_message(chat_id, "⤵ اخـتر نـوع التحـميل:", reply_markup=markup)
@@ -63,7 +63,7 @@ def register_download_handlers(bot, is_user_admin):
         unique_id = call.data.split("_", 1)[1]
 
         if unique_id not in url_store:
-            bot.send_message(chat_id, "❌ الرابط غير متاح أو انتهت صلاحيته.")
+            bot.send_message(chat_id, "❌ الرابط مالقيته أو انتهت صلاحيته.")
             return
 
         url = url_store.pop(unique_id)  # استرجاع الرابط وحذفه من التخزين
@@ -75,7 +75,7 @@ def register_download_handlers(bot, is_user_admin):
         for i in range(1, 6):
             time.sleep(2)
             progress = "■" * i + "□" * (5 - i)
-            bot.edit_message_text(f"<b>⇄ جـاري التحمـيل انتظـر قلـيلاً...</b>\n{progress} {i * 20}%", chat_id, progress_msg.message_id, parse_mode="HTML")
+            bot.edit_message_text(f"<b>⇄ جـاري التحمـيل أنـطر شـوي...</b>\n{progress} {i * 20}%", chat_id, progress_msg.message_id, parse_mode="HTML")
 
         # تحديث الرسالة إلى "➳ 𝑳𝒐𝒂𝒅𝒊𝒏𝒈.." قبل تحميل الملف
         bot.edit_message_text("<b>➳ 𝑳𝒐𝒂𝒅𝒊𝒏𝒈..</b>", chat_id, progress_msg.message_id, parse_mode="HTML")
@@ -86,9 +86,9 @@ def register_download_handlers(bot, is_user_admin):
             with open(file_path, "rb") as media:
                 caption = "<b>تـم التحميل بواسطـة @SY_SBbot</b>\n"
                 if "facebook.com" in url:
-                    caption += f"<b>تم التحميل من </b><a href='{url}'>الرابط هنا</a>"
+                    caption += f"<b>تـم التحميل مـن </b><a href='{url}'>الرابط هنا</a>"
                 elif "instagram.com" in url:
-                    caption += f"<b>تم التحميل من </b><a href='{url}'>الرابط هنا</a>"
+                    caption += f"<b>تـم التحميل ↩️مـن </b><a href='{url}'>الرابط هنا</a>"
 
                 if format_type == "video":
                     bot.send_video(chat_id, media, caption=caption, parse_mode="HTML")
@@ -142,4 +142,4 @@ def handle_story_error(chat_id):
     bot.send_message(
         chat_id,
         "❌ عذرًا ربما يكون الفيديو هو قصة من Instagram أو Facebook. للأسف لا أستطيع تحميل القصص بسبب سياسات المنصة يمكنك استخدام تطبيقات خارجية لتحميل القصص❤️\nلكن يمكنني مساعدتك في تحميل الفيديوهات العامة والريلز"
-            )
+                                            )
