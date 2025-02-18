@@ -48,8 +48,8 @@ def register_download_handlers(bot, is_user_admin):
         url_store[unique_id] = url  # تخزين الرابط
 
         markup = telebot.types.InlineKeyboardMarkup(row_width=1)  # تغيير العرض ليكون عمودي
-        video_button = telebot.types.InlineKeyboardButton("📹 تحميل فيديو", callback_data=f"video_{unique_id}")
-        audio_button = telebot.types.InlineKeyboardButton("🎵 تحميل مقطع صوتي", callback_data=f"audio_{unique_id}")
+        video_button = telebot.types.InlineKeyboardButton("▶ تحميل فيديو", callback_data=f"video_{unique_id}")
+        audio_button = telebot.types.InlineKeyboardButton("🎧 تحميل مقطع صوتي", callback_data=f"audio_{unique_id}")
         markup.add(video_button, audio_button)
 
         message_sent = bot.send_message(chat_id, "🔹 اختر نوع التحميل:", reply_markup=markup)
@@ -75,7 +75,7 @@ def register_download_handlers(bot, is_user_admin):
         for i in range(1, 6):
             time.sleep(2)
             progress = "■" * i + "□" * (5 - i)
-            bot.edit_message_text(f"<b>⏳ جاري التحميل، انتظر قليلاً...</b>\n{progress} {i * 20}%", chat_id, progress_msg.message_id, parse_mode="HTML")
+            bot.edit_message_text(f"<b>⇄ جـاري التحمـيل انتظـر قلـيلاً...</b>\n{progress} {i * 20}%", chat_id, progress_msg.message_id, parse_mode="HTML")
 
         # تحديث الرسالة إلى "➳ 𝑳𝒐𝒂𝒅𝒊𝒏𝒈.." قبل تحميل الملف
         bot.edit_message_text("<b>➳ 𝑳𝒐𝒂𝒅𝒊𝒏𝒈..</b>", chat_id, progress_msg.message_id, parse_mode="HTML")
@@ -85,12 +85,12 @@ def register_download_handlers(bot, is_user_admin):
         if file_path and os.path.exists(file_path):
             with open(file_path, "rb") as media:
                 if format_type == "video":
-                    bot.send_video(chat_id, media, caption="<b>تم التحميل بواسطة @SY_SBbot</b>", parse_mode="HTML")
+                    bot.send_video(chat_id, media, caption="<b>تـم التحميل بواسطـة @SY_SBbot</b>", parse_mode="HTML")
                 else:
                     bot.send_audio(chat_id, media, caption="<b>تم التحميل بواسطة @SY_SBbot</b>", parse_mode="HTML")
 
             os.remove(file_path)  # حذف الملف بعد الإرسال
-            bot.send_message(chat_id, "<b>✅ تم التحميل بنجاح!</b> 𓍯𓂃𓏧♡", parse_mode="HTML")
+            bot.send_message(chat_id, "<b> تـم التحـميل بنـجاح</b> ♡𓏧♡", parse_mode="HTML")
         else:
             bot.send_message(chat_id, "❌ حدث خطأ أثناء التحميل.")
 
@@ -135,5 +135,5 @@ def download_media(url, format_type):
 def handle_story_error(chat_id):
     bot.send_message(
         chat_id,
-        "❌ عذرًا، ربما يكون الفيديو هو قصة من Instagram أو Facebook. للأسف لا أستطيع تحميل القصص بسبب سياسات المنصة. يمكنك استخدام تطبيقات خارجية لتحميل القصص.❤️\nلكن يمكنني مساعدتك في تحميل الفيديوهات العامة والريلز."
-    )
+        "❌ عذرًا ربما يكون الفيديو هو قصة من Instagram أو Facebook. للأسف لا أستطيع تحميل القصص بسبب سياسات المنصة يمكنك استخدام تطبيقات خارجية لتحميل القصص❤️\nلكن يمكنني مساعدتك في تحميل الفيديوهات العامة والريلز"
+                        )
