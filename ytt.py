@@ -154,14 +154,16 @@ def download_media(call, download_type, url, quality, loading_msg):
 
             os.remove(file_path)
 
-            # حذف رسالة الأزرار بعد 2 ثانية من إرسال الملف الصوتي
+            # حذف رسالة التحميل (loading message) بعد 2 ثانية من إرسال الملف الصوتي
             time.sleep(2)
-
-            # حذف رسالة نتائج البحث
-            if chat_id in user_search_data:
-                bot.delete_message(call.message.chat.id, user_search_data[chat_id]["message_id"])
-
             bot.delete_message(call.message.chat.id, loading_msg.message_id)
+
+            # حذف رسالة البحث (الصورة المصغرة مع أزرار التحميل) بعد 5 ثواني من إرسال الملف الصوتي
+            time.sleep(5)
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+            except Exception:
+                pass
 
     except Exception as e:
         bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
