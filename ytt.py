@@ -1,9 +1,9 @@
 import os
 import yt_dlp
+import time
 from googleapiclient.discovery import build
 import telebot
 from telebot import types
-import time
 
 # إعدادات البوت
 TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
@@ -26,121 +26,130 @@ def check_subscription(user_id):
 @bot.message_handler(commands=['start'])
 def start(message):
     if not check_subscription(message.from_user.id):
-        bot.send_message(
-            message.chat.id,
-            f'يجب الاشتراك في القناة أولًا: {CHANNEL_ID}',
-            parse_mode='HTML'
-        )
+        bot.send_message(message.chat.id, f'يجب الاشتراك في القناة أولًا: {CHANNEL_ID}', parse_mode='HTML')
         return
-    bot.send_message(
-        message.chat.id,
-        'مرحبًا! استخدم /d للبحث أو التحميل من يوتيوب.',
-        parse_mode='HTML'
-    )
+    
+    bot.send_message(message.chat.id, 'مرحبًا! استخدم /d للبحث أو التحميل من يوتيوب.', parse_mode='HTML')
 
-# التعامل مع الرسائل الواردة
+# البحث عن فيديوهات يوتيوب
 @bot.message_handler(func=lambda message: message.text.startswith('/d '))
 def handle_message(message):
     query = message.text[3:].strip()
-    if query.startswith('http'):
-        show_download_options(message, query)
-    else:
-        search_response = youtube.search().list(
-            q=query, part='snippet', maxResults=5, type='video'
-        ).execute()
-        
-        search_results = []
-        for item in search_response['items']:
-            video_id = item['id']['videoId']
-            thumbnail_url = item['snippet']['thumbnails']['high']['url']
-            video_title = item['snippet']['title']
-            search_results.append((video_id, thumbnail_url, video_title))
-        
-        markup = types.InlineKeyboardMarkup()
-        # إضافة الأزرار لأربعة نتائج
-        for idx, (video_id, thumbnail_url, video_title) in enumerate(search_results):
-            button_online = types.InlineKeyboardButton(f"أون لاين {video_title}", callback_data=f'change_thumbnail|{idx}')
-            button_download = types.InlineKeyboardButton("تحميل MP3", callback_data=f'download|{video_id}|mp3')
+    
+    search_response = youtube.search().list(
+        q=query,
+        part='snippet',
+        maxResults=5,
+        type='video'
+    ).execute()
 
-            markup.add(button_online, button_download)
+    results = []
+    for item in search_response['items']:
+        video_id = item['id']['videoId']
+        title = item['snippet']['title']
+        thumbnail = item['snippet']['thumbnails']['high']['url']
+        results.append((video_id, title, thumbnail))
 
-        # حفظ نتائج البحث في الذاكرة (سنستخدم dictionary لتخزين النتائج)
-        bot_data = {'results': search_results, 'message_id': message.message_id}
-        bot.set_chat_data(message.chat.id, bot_data)
+    # أول نتيجة لعرضها كصورة مصغرة
+    first_video = results[0]
+    thumbnail_url = first_video[2]
 
-        # إرسال الرسالة الأولى
-        bot.send_message(
-            message.chat.id,
-            "اختر من بين هذه النتائج:",
-            reply_markup=markup,
-        )
+    # إنشاء الأزرار
+    markup = types.InlineKeyboardMarkup()
+    for i, (video_id, title, _) in enumerate(results):
+        btn_video = types.InlineKeyboardButton(f"🎥 {title[:25]}", callback_data=f"preview|{video_id}")
+        btn_download = types.InlineKeyboardButton("⬇️", callback_data=f"download|{video_id}")
+        markup.row(btn_video, btn_download)
+
+    # إرسال الرسالة مع الصورة المصغرة
+    msg = bot.send_photo(
+        message.chat.id,
+        thumbnail_url,
+        caption=f"<b>نتائج البحث عن:</b> {query}\n\nاختر فيديو لمشاهدته أو تحميله",
+        reply_markup=markup,
+        parse_mode='HTML'
+    )
+
+    # تخزين بيانات البحث للمستخدم
+    user_search_data[message.chat.id] = {"message_id": msg.message_id, "results": results}
+
+# تخزين بيانات البحث لكل مستخدم
+user_search_data = {}
 
 # التعامل مع الأزرار
 @bot.callback_query_handler(func=lambda call: True)
 def button(call):
     data = call.data.split('|')
-
-    if data[0] == 'change_thumbnail':
-        idx = int(data[1])
-        bot_data = bot.get_chat_data(call.message.chat.id)
-        search_results = bot_data['results']
-        video_id, thumbnail_url, video_title = search_results[idx]
+    
+    if data[0] == "preview":
+        video_id = data[1]
+        chat_id = call.message.chat.id
         
-        # تحديث الصورة المصغرة
+        # الحصول على الصورة المصغرة الجديدة
+        for vid, title, thumb in user_search_data[chat_id]["results"]:
+            if vid == video_id:
+                new_thumbnail = thumb
+                break
+        
+        # تعديل الرسالة الحالية بدلاً من إرسال واحدة جديدة
         bot.edit_message_media(
-            media=types.InputMediaPhoto(thumbnail_url, caption=f'<b>{video_title}</b>', parse_mode='HTML'),
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
+            media=types.InputMediaPhoto(new_thumbnail, caption=call.message.caption),
+            chat_id=chat_id,
+            message_id=user_search_data[chat_id]["message_id"]
         )
 
-        # إضافة رسالة منبثقة لتأكيد التغيير
-        bot.answer_callback_query(call.id, text="تم تغيير الصورة المصغرة!")
-
-    elif data[0] == 'download':
+    elif data[0] == "download":
         video_id = data[1]
-        video_url = f'https://www.youtube.com/watch?v={video_id}'
+        chat_id = call.message.chat.id
         
-        # إرسال رسالة التحميل الأولية
-        loading_msg = bot.send_message(call.message.chat.id, '<b>جاري التحميل... 🔄</b>', parse_mode='HTML')
+        # إرسال رسالة "جاري التحميل..."
+        loading_msg = bot.send_message(chat_id, '<b>جاري التحميل... 🔄</b>', parse_mode='HTML')
 
-        # تحميل الوسائط
-        download_media(call, 'audio', video_url, 'mp3', loading_msg)
+        # شريط تقدم التحميل
+        progress_stages = [
+            "█▒▒▒▒▒▒▒▒▒10%", "██▒▒▒▒▒▒▒▒20%", "███▒▒▒▒▒▒▒30%",
+            "████▒▒▒▒▒▒40%", "█████▒▒▒▒▒50%", "████████▒▒80%",
+            "██████████100%", "تم التحميل 🎶 جاري الرفع..."
+        ]
+
+        for stage in progress_stages:
+            time.sleep(1)
+            bot.edit_message_text(f"<b>{stage}</b>", chat_id=chat_id, message_id=loading_msg.message_id, parse_mode='HTML')
+
+        # تحميل الفيديو بصيغة MP3
+        download_audio(video_id, chat_id, loading_msg.message_id)
 
 # تحميل الصوت
-def download_media(call, download_type, url, quality, loading_msg):
+def download_audio(video_id, chat_id, loading_message_id):
+    url = f'https://www.youtube.com/watch?v={video_id}'
+    
     ydl_opts = {
-        'outtmpl': '%(title)s.%(ext)s',
         'format': 'bestaudio/best',
-        'timeout': 999999999,
-        'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}] if download_type == 'audio' else [],
-        'retries': 3,
+        'outtmpl': '%(title)s.%(ext)s',
+        'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}]
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            file_path = ydl.prepare_filename(info)
-            
-            if download_type == 'audio':
-                file_path = file_path.replace('.webm', '.mp3')
+            file_path = ydl.prepare_filename(info).replace('.webm', '.mp3')
 
-            # إرسال نسبة التحميل
-            total_size = os.path.getsize(file_path)
-            bot.edit_message_text(f"<b>تحميل: {0}%...</b>", chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode="HTML")
+        # إرسال الملف الصوتي
+        with open(file_path, 'rb') as file:
+            bot.send_audio(chat_id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ✅")
 
-            with open(file_path, 'rb') as file:
-                bot.send_audio(call.message.chat.id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ⋙")
+        # حذف الملف بعد الإرسال
+        os.remove(file_path)
 
-            os.remove(file_path)
-
-            # حذف رسالة التحميل بعد الرفع
-            bot.delete_message(call.message.chat.id, loading_msg.message_id)
-
-            # حذف نتائج البحث بعد التحميل
-            bot.delete_message(call.message.chat.id, call.message.message_id)
+        # حذف رسالة البحث والتحميل
+        if chat_id in user_search_data:
+            bot.delete_message(chat_id, user_search_data[chat_id]["message_id"])
+            del user_search_data[chat_id]
+        
+        bot.delete_message(chat_id, loading_message_id)
 
     except Exception as e:
-        bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
+        bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=chat_id, message_id=loading_message_id, parse_mode='HTML')
 
 # تشغيل البوت
 if __name__ == '__main__':
