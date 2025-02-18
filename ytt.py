@@ -30,14 +30,12 @@ def start(message):
     if not check_subscription(message.from_user.id):
         bot.send_message(message.chat.id, f'يجب الاشتراك في القناة أولًا: {CHANNEL_ID}', parse_mode='HTML')
         return
-    
     bot.send_message(message.chat.id, 'مرحبًا! استخدم /d للبحث أو التحميل من يوتيوب.', parse_mode='HTML')
 
 # البحث عن فيديوهات يوتيوب
 @bot.message_handler(func=lambda message: message.text.startswith('/d '))
 def handle_message(message):
     query = message.text[3:].strip()
-    
     search_response = youtube.search().list(
         q=query,
         part='snippet',
@@ -78,10 +76,9 @@ def handle_message(message):
 def button(call):
     data = call.data.split('|')
     chat_id = call.message.chat.id
-    
+
     if data[0] == "preview":
         video_id = data[1]
-
         if chat_id not in user_search_data:
             return
 
@@ -109,7 +106,6 @@ def button(call):
 
     elif data[0] == "download":
         video_id = data[1]
-        
         loading_msg = bot.send_message(chat_id, '<b>جاري التحميل... 🔄</b>', parse_mode='HTML')
 
         progress_stages = [
@@ -122,13 +118,14 @@ def button(call):
             time.sleep(1)
             bot.edit_message_text(f"<b>{stage}</b>", chat_id=chat_id, message_id=loading_msg.message_id, parse_mode='HTML')
 
-        download_audio(video_id, chat_id, loading_msg.message_id)
+        # استدعاء الدالة الخاصة بالتحميل الصوت فقط
+        download_media(call, 'audio', video_id, 'bestaudio', loading_msg)
 
 # تحميل الصوت
 def download_media(call, download_type, url, quality, loading_msg):
     cookies_file_path = 'cookies.txt'
     cookies = load_cookies_from_file(cookies_file_path)
-    
+
     if not cookies:
         bot.edit_message_text('<b>فشل تحميل الكوكيز! يرجى التأكد من الملف.</b>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
         return
@@ -147,13 +144,13 @@ def download_media(call, download_type, url, quality, loading_msg):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             file_path = ydl.prepare_filename(info)
-            
+
             if download_type == 'audio':
                 file_path = file_path.replace('.webm', '.mp3')
 
             # رفع الملف الصوتي
             with open(file_path, 'rb') as file:
-                bot.send_audio(call.message.chat.id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ⋙")  
+                bot.send_audio(call.message.chat.id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ⋙")
 
             os.remove(file_path)
 
@@ -162,6 +159,7 @@ def download_media(call, download_type, url, quality, loading_msg):
 
     except Exception as e:
         bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
+
 # تحميل الكوكيز من ملف
 def load_cookies_from_file(file_path):
     if os.path.exists(file_path):
@@ -178,9 +176,6 @@ def load_cookies_from_file(file_path):
                     cookies_dict[cookie_name] = cookie_value
             return cookies_dict
     return None
-                
-        
-        
 
 # تشغيل البوت
 if __name__ == '__main__':
