@@ -1,5 +1,4 @@
 from sh1 import register_download_handlers
-from ytt import bot 
 import telebot
 import re
 import opennsfw2 as n2
