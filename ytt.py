@@ -138,9 +138,6 @@ def download_media(call, download_type, url, quality, loading_msg):
             if download_type == 'audio':
                 file_path = file_path.replace('.webm', '.mp3')
 
-            # إرسال رسالة التحميل النهائي
-            bot.send_message(call.message.chat.id, '<b>تم التحميل 🎶 جاري الرفع...</b>', parse_mode='HTML')
-
             # رفع الملف الصوتي
             with open(file_path, 'rb') as file:
                 bot.send_audio(call.message.chat.id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ⋙")  
