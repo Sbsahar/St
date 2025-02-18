@@ -2,6 +2,7 @@ import telebot
 import yt_dlp
 import os
 import uuid
+import time
 
 # قاموس لتخزين الروابط المرتبطة بمعرف فريد
 url_store = {}
@@ -51,7 +52,9 @@ def register_download_handlers(bot, is_user_admin):
         audio_button = telebot.types.InlineKeyboardButton("🎵 تحميل مقطع صوتي", callback_data=f"audio_{unique_id}")
         markup.add(video_button, audio_button)
 
-        bot.send_message(chat_id, "🔹 اختر نوع التحميل:", reply_markup=markup)
+        message_sent = bot.send_message(chat_id, "🔹 اختر نوع التحميل:", reply_markup=markup)
+        time.sleep(5)  # الانتظار 5 ثوانٍ قبل حذف الرسالة
+        bot.delete_message(chat_id, message_sent.message_id)  # حذف الرسالة بعد 5 ثوانٍ
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("video_") or call.data.startswith("audio_"))
     def handle_download(call):
@@ -70,9 +73,9 @@ def register_download_handlers(bot, is_user_admin):
         if file_path and os.path.exists(file_path):
             with open(file_path, "rb") as media:
                 if format_type == "video":
-                    bot.send_video(chat_id, media)
+                    bot.send_video(chat_id, media, caption="تم التحميل بواسطة @SY_SBbot")
                 else:
-                    bot.send_audio(chat_id, media)
+                    bot.send_audio(chat_id, media, caption="تم التحميل بواسطة @SY_SBbot")
 
             os.remove(file_path)  # حذف الملف بعد الإرسال
             bot.send_message(chat_id, "✅ تم التحميل بنجاح!")
