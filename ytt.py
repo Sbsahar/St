@@ -46,25 +46,26 @@ def handle_message(message):
         show_download_options(message, query)
     else:
         search_response = youtube.search().list(
-            q=query, part='snippet', maxResults=1, type='video'
+            q=query, part='snippet', maxResults=5, type='video'
         ).execute()
         
-        item = search_response['items'][0]
-        video_id = item['id']['videoId']
-        thumbnail_url = item['snippet']['thumbnails']['high']['url']
-        video_title = item['snippet']['title']
+        for item in search_response['items']:
+            video_id = item['id']['videoId']
+            thumbnail_url = item['snippet']['thumbnails']['high']['url']
+            video_title = item['snippet']['title']
 
-        markup = types.InlineKeyboardMarkup()
-        button = types.InlineKeyboardButton("تحميل MP3", callback_data=f'audio|{video_id}|mp3')
-        markup.add(button)
+            markup = types.InlineKeyboardMarkup()
+            button_online = types.InlineKeyboardButton("أون لاين", callback_data=f'online|{video_id}')
+            button_download = types.InlineKeyboardButton("تحميل MP3", callback_data=f'audio|{video_id}|mp3')
+            markup.add(button_online, button_download)
 
-        bot.send_photo(
-            message.chat.id,
-            thumbnail_url,
-            caption=f'<b>{video_title}</b>',
-            reply_markup=markup,
-            parse_mode='HTML'
-        )
+            bot.send_photo(
+                message.chat.id,
+                thumbnail_url,
+                caption=f'<b>{video_title}</b>',
+                reply_markup=markup,
+                parse_mode='HTML'
+            )
 
 # التعامل مع الأزرار
 @bot.callback_query_handler(func=lambda call: True)
@@ -75,33 +76,26 @@ def button(call):
         bot.send_message(call.message.chat.id, "هناك خطأ في البيانات المدخلة. يرجى المحاولة مرة أخرى.", parse_mode='HTML')
         return
 
-    download_type = data[0]
+    action = data[0]
     video_id = data[1]
     quality = data[2]
     
     video_url = f'https://www.youtube.com/watch?v={video_id}'
-    
-    # إرسال رسالة التحميل الأولية
-    loading_msg = bot.send_message(call.message.chat.id, '<b>جاري التحميل... 🔄</b>', parse_mode='HTML')
 
-    # تحديث الرسالة تدريجيًا مع شريط التقدم
-    progress_stages = [
-        "█▒▒▒▒▒▒▒▒▒10%",
-        "██▒▒▒▒▒▒▒▒20%",
-        "███▒▒▒▒▒▒▒30%",
-        "████▒▒▒▒▒▒40%",
-        "█████▒▒▒▒▒50%",
-        "████████▒▒80%",
-        "██████████100%",
-        "تم التحميل 🎶 جاري الرفع..."
-    ]
+    if action == 'online':
+        # تغيير الصورة المصغرة
+        thumbnail_url = f'https://img.youtube.com/vi/{video_id}/hqdefault.jpg'
+        bot.edit_message_media(
+            media=types.InputMediaPhoto(thumbnail_url, caption=f'جاري تشغيل {video_id}'),
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id
+        )
+    elif action == 'audio':
+        # إرسال رسالة التحميل الأولية
+        loading_msg = bot.send_message(call.message.chat.id, '<b>جاري التحميل... 🔄</b>', parse_mode='HTML')
 
-    for stage in progress_stages:
-        time.sleep(1)  # انتظار ثانية واحدة قبل التحديث
-        bot.edit_message_text(f"<b>{stage}</b>", chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
-
-    # تحميل الوسائط
-    download_media(call, download_type, video_url, quality, loading_msg)
+        # تحميل الوسائط
+        download_media(call, action, video_url, quality, loading_msg)
 
 # عرض خيارات التحميل
 def show_download_options(message, url):
@@ -146,6 +140,9 @@ def download_media(call, download_type, url, quality, loading_msg):
 
             # حذف رسالة "تم التحميل 🎶 جاري الرفع..." بعد الرفع
             bot.delete_message(call.message.chat.id, loading_msg.message_id)
+
+            # حذف نتائج البحث بعد التحميل
+            bot.delete_message(call.message.chat.id, call.message.message_id)
 
     except Exception as e:
         bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
