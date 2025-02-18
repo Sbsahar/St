@@ -2354,5 +2354,8 @@ def send_auto_reply(target_msg, original_message=None):
 load_banned_words()         
 load_detection_status()          
 reset_daily_reports()        
-if __name__ == "__main__":
+try:
+    print("أي أنا شغال أموري تمام ")
     bot.infinity_polling()
+except Exception as e:
+    print(f"🚫 في غلط مارح اقدر أشتغل")
