@@ -36,14 +36,14 @@ class YoutubeModule:
 
             markup = types.InlineKeyboardMarkup()
             for video_id, title, _ in results:
-                btn_video = types.InlineKeyboardButton(f"🎥 {title[:25]}", callback_data=f"youtube_preview|{video_id}")
-                btn_download = types.InlineKeyboardButton("⬇️", callback_data=f"youtube_download|{video_id}")
+                btn_video = types.InlineKeyboardButton(f"🎶 {title[:25]}", callback_data=f"youtube_preview|{video_id}")
+                btn_download = types.InlineKeyboardButton("MP3🎵", callback_data=f"youtube_download|{video_id}")
                 markup.row(btn_video, btn_download)
 
             msg = self.bot.send_photo(
                 message.chat.id,
                 thumbnail_url,
-                caption=f"<b>نتائج البحث عن:</b> {query}\n\nاختر فيديو لمشاهدته أو تحميله",
+                caption=f"<b>نتائج البحث عن:</b> <i>{query}</i>\n\n<b>MP3 اختر فيديو لتحميله</b>",
                 reply_markup=markup,
                 parse_mode='HTML'
             )
@@ -71,12 +71,12 @@ class YoutubeModule:
 
                 markup = types.InlineKeyboardMarkup()
                 for vid, title, _ in results:
-                    btn_video = types.InlineKeyboardButton(f"🎥 {title[:25]}", callback_data=f"youtube_preview|{vid}")
-                    btn_download = types.InlineKeyboardButton("⬇️", callback_data=f"youtube_download|{vid}")
+                    btn_video = types.InlineKeyboardButton(f"MP3🎵 {title[:25]}", callback_data=f"youtube_preview|{vid}")
+                    btn_download = types.InlineKeyboardButton("🎶⬇️", callback_data=f"youtube_download|{vid}")
                     markup.row(btn_video, btn_download)
 
                 self.bot.edit_message_media(
-                    media=types.InputMediaPhoto(new_thumbnail, caption=f"<b>نتائج البحث عن:</b> {query}\n\nاختر فيديو لمشاهدته أو تحميله"),
+                    media=types.InputMediaPhoto(new_thumbnail, caption=f"<b>نتائج البحث عن:</b> <i>{query}</i>\n\n<b>اختر فيديو لمشاهدته أو تحميله</b>"),
                     chat_id=chat_id,
                     message_id=self.user_search_data[chat_id]["message_id"],
                     reply_markup=markup
