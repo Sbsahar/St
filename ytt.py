@@ -14,7 +14,9 @@ BOT_USERNAME = '@SY_SBbot'
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
 bot = telebot.TeleBot(TOKEN)
 
-# التحقق من الاشتراك في القناة
+# قاموس لتتبع الرسائل المرسلة لكل مستخدم
+user_sessions = {}
+
 def check_subscription(user_id):
     try:
         member = bot.get_chat_member(CHANNEL_ID, user_id)
@@ -22,7 +24,6 @@ def check_subscription(user_id):
     except Exception:
         return False
 
-# دالة start لبدء التفاعل مع البوت
 @bot.message_handler(commands=['start'])
 def start(message):
     if not check_subscription(message.from_user.id):
@@ -38,132 +39,147 @@ def start(message):
         parse_mode='HTML'
     )
 
-# التعامل مع الرسائل الواردة
+def create_search_results_markup(video_id):
+    markup = types.InlineKeyboardMarkup()
+    online_btn = types.InlineKeyboardButton("▶️ اون لاين", callback_data=f'preview|{video_id}')
+    download_btn = types.InlineKeyboardButton("⬇️ تحميل MP3", callback_data=f'download|{video_id}')
+    markup.row(online_btn, download_btn)
+    return markup
+
 @bot.message_handler(func=lambda message: message.text.startswith('/d '))
 def handle_message(message):
+    if not check_subscription(message.from_user.id):
+        bot.send_message(message.chat.id, f'يجب الاشتراك في القناة أولًا: {CHANNEL_ID}', parse_mode='HTML')
+        return
+
     query = message.text[3:].strip()
+    
     if query.startswith('http'):
         show_download_options(message, query)
-    else:
-        search_response = youtube.search().list(
-            q=query, part='snippet', maxResults=5, type='video'
-        ).execute()
-        
-        for item in search_response['items']:
+        return
+
+    search_response = youtube.search().list(
+        q=query,
+        part='snippet',
+        maxResults=5,
+        type='video'
+    ).execute()
+
+    items = search_response.get('items', [])
+    if not items:
+        bot.send_message(message.chat.id, "⚠️ لم يتم العثور على نتائج!")
+        return
+
+    user_sessions[message.chat.id] = []
+    progress_msg = bot.send_message(message.chat.id, "🔍 جاري البحث عن النتائج...")
+    
+    try:
+        for item in items:
             video_id = item['id']['videoId']
-            thumbnail_url = item['snippet']['thumbnails']['high']['url']
-            video_title = item['snippet']['title']
-
-            markup = types.InlineKeyboardMarkup()
-            button_online = types.InlineKeyboardButton("أون لاين", callback_data=f'online|{video_id}')
-            button_download = types.InlineKeyboardButton("تحميل MP3", callback_data=f'audio|{video_id}|mp3')
-            markup.add(button_online, button_download)
-
-            bot.send_photo(
+            thumbnail = item['snippet']['thumbnails']['high']['url']
+            title = item['snippet']['title']
+            
+            markup = create_search_results_markup(video_id)
+            sent_msg = bot.send_photo(
                 message.chat.id,
-                thumbnail_url,
-                caption=f'<b>{video_title}</b>',
+                thumbnail,
+                caption=f"<b>{title}</b>",
                 reply_markup=markup,
                 parse_mode='HTML'
             )
+            user_sessions[message.chat.id].append(sent_msg.message_id)
+            
+        bot.delete_message(message.chat.id, progress_msg.message_id)
+    except Exception as e:
+        bot.edit_message_text(f"حدث خطأ: {e}", message.chat.id, progress_msg.message_id)
 
-# التعامل مع الأزرار
 @bot.callback_query_handler(func=lambda call: True)
-def button(call):
+def handle_callback(call):
+    chat_id = call.message.chat.id
     data = call.data.split('|')
     
-    if len(data) != 3:
-        bot.send_message(call.message.chat.id, "هناك خطأ في البيانات المدخلة. يرجى المحاولة مرة أخرى.", parse_mode='HTML')
-        return
-
-    action = data[0]
-    video_id = data[1]
-    quality = data[2]
-    
-    video_url = f'https://www.youtube.com/watch?v={video_id}'
-
-    if action == 'online':
-        # تغيير الصورة المصغرة
-        thumbnail_url = f'https://img.youtube.com/vi/{video_id}/hqdefault.jpg'
+    if data[0] == 'preview':
+        video_id = data[1]
+        item = youtube.videos().list(part='snippet', id=video_id).execute()['items'][0]
+        thumbnail = item['snippet']['thumbnails']['maxres']['url']
+        title = item['snippet']['title']
+        
         bot.edit_message_media(
-            media=types.InputMediaPhoto(thumbnail_url, caption=f'جاري تشغيل {video_id}'),
-            chat_id=call.message.chat.id,
+            types.InputMediaPhoto(thumbnail),
+            chat_id=chat_id,
             message_id=call.message.message_id
         )
-    elif action == 'audio':
-        # إرسال رسالة التحميل الأولية
-        loading_msg = bot.send_message(call.message.chat.id, '<b>جاري التحميل... 🔄</b>', parse_mode='HTML')
+        bot.edit_message_caption(
+            chat_id=chat_id,
+            message_id=call.message.message_id,
+            caption=f"<b>▶️ {title}</b>",
+            reply_markup=create_search_results_markup(video_id),
+            parse_mode='HTML'
+        )
+        
+    elif data[0] == 'download':
+        video_id = data[1]
+        url = f'https://www.youtube.com/watch?v={video_id}'
+        
+        loading_msg = bot.send_message(chat_id, "<b>⏳ جاري التحميل...</b>", parse_mode='HTML')
+        
+        # محاكاة شريط التقدم
+        progress = [
+            "█▒▒▒▒▒▒▒▒▒ 10%",
+            "███▒▒▒▒▒▒▒ 30%",
+            "██████▒▒▒▒ 60%",
+            "██████████ 100%",
+            "✅ تم التحميل! جاري الرفع..."
+        ]
+        
+        for stage in progress:
+            time.sleep(1.5)
+            bot.edit_message_text(
+                f"<b>{stage}</b>",
+                chat_id=chat_id,
+                message_id=loading_msg.message_id,
+                parse_mode='HTML'
+            )
+            
+        try:
+            file_path = download_audio(url)
+            with open(file_path, 'rb') as audio_file:
+                bot.send_audio(chat_id, audio_file, caption=f"🎧 تم التحميل بواسطة {BOT_USERNAME}")
+            os.remove(file_path)
+            
+            # حذف جميع رسائل البحث والتحميل
+            if chat_id in user_sessions:
+                for msg_id in user_sessions[chat_id]:
+                    try:
+                        bot.delete_message(chat_id, msg_id)
+                    except:
+                        pass
+                del user_sessions[chat_id]
+            bot.delete_message(chat_id, loading_msg.message_id)
+            
+        except Exception as e:
+            bot.edit_message_text(f"❌ خطأ في التحميل: {e}", chat_id, loading_msg.message_id)
 
-        # تحميل الوسائط
-        download_media(call, action, video_url, quality, loading_msg)
+def download_audio(url):
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': '%(title)s.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+        }],
+        'cookiefile': 'cookies.txt'
+    }
+    
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        return ydl.prepare_filename(info).replace('.webm', '.mp3')
 
-# عرض خيارات التحميل
 def show_download_options(message, url):
     markup = types.InlineKeyboardMarkup()
-    button = types.InlineKeyboardButton("تحميل MP3", callback_data=f'audio|{url}|mp3')
-    markup.add(button)
+    btn = types.InlineKeyboardButton("⬇️ تحميل MP3", callback_data=f'direct|{url}')
+    markup.add(btn)
+    bot.send_message(message.chat.id, "⚙️ اختر نوع التحميل:", reply_markup=markup)
 
-    bot.send_message(message.chat.id, '<b>اختر نوع التحميل:</b>', reply_markup=markup, parse_mode='HTML')
-
-# تحميل الصوت
-def download_media(call, download_type, url, quality, loading_msg):
-    cookies_file_path = 'cookies.txt'
-    cookies = load_cookies_from_file(cookies_file_path)
-    
-    if not cookies:
-        bot.edit_message_text('<b>فشل تحميل الكوكيز! يرجى التأكد من الملف.</b>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
-        return
-
-    ydl_opts = {
-        'outtmpl': '%(title)s.%(ext)s',
-        'format': 'bestaudio/best',
-        'timeout': 999999999,
-        'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}] if download_type == 'audio' else [],
-        'retries': 3,
-        'cookiefile': cookies_file_path,
-        'cookies': cookies,
-    }
-
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            file_path = ydl.prepare_filename(info)
-            
-            if download_type == 'audio':
-                file_path = file_path.replace('.webm', '.mp3')
-
-            # رفع الملف الصوتي
-            with open(file_path, 'rb') as file:
-                bot.send_audio(call.message.chat.id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ⋙")  
-
-            os.remove(file_path)
-
-            # حذف رسالة "تم التحميل 🎶 جاري الرفع..." بعد الرفع
-            bot.delete_message(call.message.chat.id, loading_msg.message_id)
-
-            # حذف نتائج البحث بعد التحميل
-            bot.delete_message(call.message.chat.id, call.message.message_id)
-
-    except Exception as e:
-        bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
-
-# تحميل الكوكيز من ملف
-def load_cookies_from_file(file_path):
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as file:
-            cookies = file.readlines()
-            cookies_dict = {}
-            for line in cookies:
-                if line.startswith('#') or line.strip() == '':
-                    continue
-                parts = line.strip().split('\t')
-                if len(parts) > 6:
-                    cookie_name = parts[5].strip()
-                    cookie_value = parts[6].strip()
-                    cookies_dict[cookie_name] = cookie_value
-            return cookies_dict
-    return None
-
-# تشغيل البوت
 if __name__ == '__main__':
     bot.polling(none_stop=True)
