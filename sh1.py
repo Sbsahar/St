@@ -95,20 +95,27 @@ def download_media(url, format_type):
         "merge_output_format": "mp4" if format_type == "video" else "mp3",
         "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}] if format_type == "audio" else [],
         "cookiefile": cookies_file,  # استخدام ملف الكوكيز الموحد
-        "extract_flat": True,  # للحصول على روابط مباشرة للفيديو والصوت
     }
 
     try:
-        # دعم تحميل القصص من Instagram
-        if "instagram.com" in url and "stories" in url:
-            ydl_opts["format"] = "bestvideo+bestaudio/best"
-
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             file_name = ydl.prepare_filename(info)
+            
+            # التحقق من نوع المحتوى
+            if "stories" in url.lower():
+                return "story_error"  # تحديد حالة تحميل القصص غير المدعومة
+
             if format_type == "audio":
                 file_name = file_name.rsplit(".", 1)[0] + ".mp3"
             return file_name
     except Exception as e:
         print(f"Error: {e}")
         return None
+
+# دالة إضافية لإبلاغ المستخدم عند فشل تحميل القصص
+def handle_story_error(chat_id):
+    bot.send_message(
+        chat_id,
+        "❌ عذرًا، ربما يكون الفيديو هو قصة من Instagram أو Facebook. للأسف لا أستطيع تحميل القصص بسبب سياسات المنصة. يمكنك استخدام تطبيقات خارجية لتحميل القصص.❤️\nلكن يمكنني مساعدتك في تحميل الفيديوهات العامة والريلز."
+    )
