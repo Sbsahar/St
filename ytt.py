@@ -5,32 +5,13 @@ from googleapiclient.discovery import build
 import telebot
 from telebot import types
 
-# إعدادات البوت
-TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
-CHANNEL_ID = '@SYR_SB'
 YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
 BOT_USERNAME = '@SY_SBbot'
 
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
-bot = telebot.TeleBot(TOKEN)
-
-# التحقق من الاشتراك في القناة
-def check_subscription(user_id):
-    try:
-        member = bot.get_chat_member(CHANNEL_ID, user_id)
-        return member.status in ('member', 'administrator', 'creator')
-    except Exception:
-        return False
 
 # تخزين بيانات البحث لكل مستخدم
 user_search_data = {}
-
-@bot.message_handler(commands=['start'])
-def start(message):
-    if not check_subscription(message.from_user.id):
-        bot.send_message(message.chat.id, f'يجب الاشتراك في القناة أولًا: {CHANNEL_ID}', parse_mode='HTML')
-        return
-    bot.send_message(message.chat.id, 'مرحبًا! استخدم /d للبحث أو التحميل من يوتيوب.', parse_mode='HTML')
 
 # البحث عن فيديوهات يوتيوب
 @bot.message_handler(func=lambda message: message.text.startswith('/d '))
@@ -183,8 +164,4 @@ def load_cookies_from_file(file_path):
                     cookie_value = parts[6].strip()
                     cookies_dict[cookie_name] = cookie_value
             return cookies_dict
-    return None
-
-# تشغيل البوت
-if __name__ == '__main__':
-    bot.polling(none_stop=True)
+    return None 
