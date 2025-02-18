@@ -1,3 +1,4 @@
+# bot_functions.py
 import os
 import yt_dlp
 import time
@@ -10,10 +11,10 @@ BOT_USERNAME = '@SY_SBbot'
 
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
 
-# تخزين بيانات البحث لكل مستخدم
+bot = telebot.TeleBot('YOUR_BOT_TOKEN')
+
 user_search_data = {}
 
-# البحث عن فيديوهات يوتيوب
 @bot.message_handler(func=lambda message: message.text.startswith('/d '))
 def handle_message(message):
     query = message.text[3:].strip()
@@ -41,7 +42,6 @@ def handle_message(message):
         btn_download = types.InlineKeyboardButton("⬇️", callback_data=f"download|{video_id}")
         markup.row(btn_video, btn_download)
 
-    # إرسال الرسالة مع الصورة المصغرة
     msg = bot.send_photo(
         message.chat.id,
         thumbnail_url,
@@ -50,7 +50,6 @@ def handle_message(message):
         parse_mode='HTML'
     )
 
-    # تخزين بيانات البحث
     user_search_data[message.chat.id] = {"message_id": msg.message_id, "results": results, "query": query}
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -71,7 +70,6 @@ def button(call):
                 new_thumbnail = thumb
                 break
 
-        # تعديل الرسالة بدون حذف المحتوى
         markup = types.InlineKeyboardMarkup()
         for vid, title, _ in results:
             btn_video = types.InlineKeyboardButton(f"🎥 {title[:25]}", callback_data=f"preview|{vid}")
@@ -99,10 +97,8 @@ def button(call):
             time.sleep(1)
             bot.edit_message_text(f"<b>{stage}</b>", chat_id=chat_id, message_id=loading_msg.message_id, parse_mode='HTML')
 
-        # استدعاء الدالة الخاصة بالتحميل الصوت فقط
         download_media(call, 'audio', video_id, 'bestaudio', loading_msg)
 
-# تحميل الصوت
 def download_media(call, download_type, url, quality, loading_msg):
     cookies_file_path = 'cookies.txt'
     cookies = load_cookies_from_file(cookies_file_path)
@@ -129,17 +125,14 @@ def download_media(call, download_type, url, quality, loading_msg):
             if download_type == 'audio':
                 file_path = file_path.replace('.webm', '.mp3')
 
-            # رفع الملف الصوتي
             with open(file_path, 'rb') as file:
                 bot.send_audio(call.message.chat.id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ⋙")
 
             os.remove(file_path)
 
-            # حذف رسالة التحميل (loading message) بعد 2 ثانية من إرسال الملف الصوتي
             time.sleep(2)
             bot.delete_message(call.message.chat.id, loading_msg.message_id)
 
-            # حذف رسالة البحث (الصورة المصغرة مع أزرار التحميل) بعد 5 ثواني من إرسال الملف الصوتي
             time.sleep(5)
             try:
                 bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -149,7 +142,6 @@ def download_media(call, download_type, url, quality, loading_msg):
     except Exception as e:
         bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
 
-# تحميل الكوكيز من ملف
 def load_cookies_from_file(file_path):
     if os.path.exists(file_path):
         with open(file_path, 'r') as file:
@@ -164,4 +156,4 @@ def load_cookies_from_file(file_path):
                     cookie_value = parts[6].strip()
                     cookies_dict[cookie_name] = cookie_value
             return cookies_dict
-    return None 
+    return None
