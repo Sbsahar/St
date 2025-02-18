@@ -14,7 +14,7 @@ class YoutubeModule:
 
     def setup_handlers(self):
         # معالجة رسائل البحث عن فيديوهات
-        @self.bot.message_handler(func=lambda message: message.text.startswith('/d '))
+        @self.bot.message_handler(func=lambda message: message.text.startswith('/ty '))
         def handle_message(message):
             query = message.text[3:].strip()
             search_response = self.youtube.search().list(
