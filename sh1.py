@@ -53,7 +53,7 @@ def register_download_handlers(bot, is_user_admin):
         markup.add(video_button, audio_button)
 
         message_sent = bot.send_message(chat_id, "⤵ اخـتر نـوع التحـميل:", reply_markup=markup)
-        time.sleep(300) 
+        time.sleep(30) 
         bot.delete_message(chat_id, message_sent.message_id) 
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("video_") or call.data.startswith("audio_"))
