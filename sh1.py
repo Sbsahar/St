@@ -95,9 +95,14 @@ def download_media(url, format_type):
         "merge_output_format": "mp4" if format_type == "video" else "mp3",
         "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}] if format_type == "audio" else [],
         "cookiefile": cookies_file,  # استخدام ملف الكوكيز الموحد
+        "extract_flat": True,  # للحصول على روابط مباشرة للفيديو والصوت
     }
 
     try:
+        # دعم تحميل القصص من Instagram
+        if "instagram.com" in url and "stories" in url:
+            ydl_opts["format"] = "bestvideo+bestaudio/best"
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             file_name = ydl.prepare_filename(info)
