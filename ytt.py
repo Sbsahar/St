@@ -11,9 +11,6 @@ CHANNEL_ID = '@SYR_SB'
 YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
 BOT_USERNAME = '@SY_SBbot'
 
-# مسار ملفات تعريف الارتباط
-COOKIES_PATH = 'cookies.txt'
-
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
 bot = telebot.TeleBot(TOKEN)
 
@@ -128,31 +125,62 @@ def button(call):
         download_audio(video_id, chat_id, loading_msg.message_id)
 
 # تحميل الصوت
-def download_audio(video_id, chat_id, loading_message_id):
-    url = f'https://www.youtube.com/watch?v={video_id}'
+def download_media(call, download_type, url, quality, loading_msg):
+    cookies_file_path = 'cookies.txt'
+    cookies = load_cookies_from_file(cookies_file_path)
     
+    if not cookies:
+        bot.edit_message_text('<b>فشل تحميل الكوكيز! يرجى التأكد من الملف.</b>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
+        return
+
     ydl_opts = {
-        'format': 'bestaudio/best',
         'outtmpl': '%(title)s.%(ext)s',
-        'cookies': COOKIES_PATH,  # استخدام ملفات تعريف الارتباط
-        'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}]
+        'format': 'bestaudio/best',
+        'timeout': 999999999,
+        'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}] if download_type == 'audio' else [],
+        'retries': 3,
+        'cookiefile': cookies_file_path,
+        'cookies': cookies,
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            file_path = ydl.prepare_filename(info).replace('.webm', '.mp3')
+            file_path = ydl.prepare_filename(info)
+            
+            if download_type == 'audio':
+                file_path = file_path.replace('.webm', '.mp3')
 
-        # إرسال الملف الصوتي
-        with open(file_path, 'rb') as file:
-            bot.send_audio(chat_id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ✅")
+            # رفع الملف الصوتي
+            with open(file_path, 'rb') as file:
+                bot.send_audio(call.message.chat.id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ⋙")  
 
-        os.remove(file_path)
+            os.remove(file_path)
 
-        bot.delete_message(chat_id, loading_message_id)
+            # حذف رسالة "تم التحميل 🎶 جاري الرفع..." بعد الرفع
+            bot.delete_message(call.message.chat.id, loading_msg.message_id)
 
     except Exception as e:
-        bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=chat_id, message_id=loading_message_id, parse_mode='HTML')
+        bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
+# تحميل الكوكيز من ملف
+def load_cookies_from_file(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as file:
+            cookies = file.readlines()
+            cookies_dict = {}
+            for line in cookies:
+                if line.startswith('#') or line.strip() == '':
+                    continue
+                parts = line.strip().split('\t')
+                if len(parts) > 6:
+                    cookie_name = parts[5].strip()
+                    cookie_value = parts[6].strip()
+                    cookies_dict[cookie_name] = cookie_value
+            return cookies_dict
+    return None
+                
+        
+        
 
 # تشغيل البوت
 if __name__ == '__main__':
