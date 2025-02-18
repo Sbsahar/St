@@ -156,6 +156,11 @@ def download_media(call, download_type, url, quality, loading_msg):
 
             # حذف رسالة الأزرار بعد 2 ثانية من إرسال الملف الصوتي
             time.sleep(2)
+
+            # حذف رسالة نتائج البحث
+            if chat_id in user_search_data:
+                bot.delete_message(call.message.chat.id, user_search_data[chat_id]["message_id"])
+
             bot.delete_message(call.message.chat.id, loading_msg.message_id)
 
     except Exception as e:
