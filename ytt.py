@@ -3,11 +3,13 @@ import yt_dlp
 from googleapiclient.discovery import build
 import telebot
 from telebot import types
+import time
 
 # إعدادات البوت
 TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
 CHANNEL_ID = '@SYR_SB'
 YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
+BOT_USERNAME = '@SY_SBbot'
 
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
 
@@ -28,13 +30,13 @@ def start(message):
         bot.send_message(
             message.chat.id,
             f'يجب الاشتراك في القناة أولًا: {CHANNEL_ID}',
-            parse_mode='HTML'  # استخدم HTML لتنسيق النصوص
+            parse_mode='HTML'
         )
         return
     bot.send_message(
         message.chat.id,
         'مرحبًا! استخدم /d للبحث أو التحميل من يوتيوب.',
-        parse_mode='HTML'  # استخدم HTML لتنسيق النصوص
+        parse_mode='HTML'
     )
 
 # التعامل مع الرسائل الواردة
@@ -63,7 +65,7 @@ def handle_message(message):
             thumbnail_url,
             caption=f'<b>{video_title}</b>',
             reply_markup=markup,
-            parse_mode='HTML'  # استخدم HTML لتنسيق النصوص
+            parse_mode='HTML'
         )
 
 # التعامل مع الأزرار
@@ -71,21 +73,19 @@ def handle_message(message):
 def button(call):
     data = call.data.split('|')
     
-    # تحقق من وجود العناصر المطلوبة في الـ data
     if len(data) != 3:
         bot.send_message(call.message.chat.id, "هناك خطأ في البيانات المدخلة. يرجى المحاولة مرة أخرى.", parse_mode='HTML')
         return
 
-    download_type = data[0]  # 'audio'
-    video_id = data[1]  # ID الفيديو
-    quality = data[2]  # الصيغة (مثل mp3)
+    download_type = data[0]
+    video_id = data[1]
+    quality = data[2]
     
     video_url = f'https://www.youtube.com/watch?v={video_id}'
     
-    # إرسال رسالة مبدئية تفيد بأنه جاري التحميل
     loading_msg = bot.send_message(call.message.chat.id, '<b>جاري التحميل..🔄</b>', parse_mode='HTML')
 
-    # تحميل الوسائط بناءً على الاختيار
+    simulate_progress(call.message.chat.id, loading_msg.message_id)
     download_media(call, download_type, video_url, quality, loading_msg)
 
 # عرض خيارات التحميل
@@ -96,9 +96,25 @@ def show_download_options(message, url):
 
     bot.send_message(message.chat.id, '<b>اختر نوع التحميل:</b>', reply_markup=markup, parse_mode='HTML')
 
+# تحديث رسالة التحميل بشكل تدريجي
+def simulate_progress(chat_id, message_id):
+    progress_bar = [
+        "█▒▒▒▒▒▒▒▒▒10%",
+        "██▒▒▒▒▒▒▒▒20%",
+        "███▒▒▒▒▒▒▒30%",
+        "████▒▒▒▒▒40%",
+        "█████▒▒▒▒▒50%",
+        "███████▒▒70%",
+        "████████▒▒80%",
+        "██████████100%"
+    ]
+    
+    for step in progress_bar:
+        bot.edit_message_text(f"<b>{step}</b>", chat_id=chat_id, message_id=message_id, parse_mode='HTML')
+        time.sleep(1)
+
 # تحميل الصوت
 def download_media(call, download_type, url, quality, loading_msg):
-    # تحميل الكوكيز من الملف النصي بتنسيق Netscape
     cookies_file_path = 'cookies.txt'
     cookies = load_cookies_from_file(cookies_file_path)
     
@@ -112,8 +128,8 @@ def download_media(call, download_type, url, quality, loading_msg):
         'timeout': 999999999,
         'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}] if download_type == 'audio' else [],
         'retries': 3,
-        'cookiefile': cookies_file_path,  # استخدام الكوكيز
-        'cookies': cookies,  # إضافتها مباشرة في الخيارات
+        'cookiefile': cookies_file_path,
+        'cookies': cookies,
     }
 
     try:
@@ -121,21 +137,16 @@ def download_media(call, download_type, url, quality, loading_msg):
             info = ydl.extract_info(url, download=True)
             file_path = ydl.prepare_filename(info)
             
-            # إذا كان التحميل صوتي، قم بتغيير الصيغة إلى mp3
             if download_type == 'audio':
                 file_path = file_path.replace('.webm', '.mp3')
 
-            # تحديث الرسالة: تم التحميل
-            bot.edit_message_text('<b>تم تحميل الصوت 🎶جاري الرفع</b>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
+            bot.edit_message_text('<b>تم التحميل 🎶 جاري الرفع...</b>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
 
             with open(file_path, 'rb') as file:
-                # إرسال الملف الصوتي
-                bot.send_audio(call.message.chat.id, file)  
+                bot.send_audio(call.message.chat.id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ⋙")  
                 
-            os.remove(file_path)  # حذف الملف بعد إرساله
+            os.remove(file_path)
 
-            # تحديث الرسالة: تم رفع الملف
-            bot.edit_message_text('<b>تم رفع الملف بنجاح🎧✅</b>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
     except Exception as e:
         bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
 
@@ -144,7 +155,6 @@ def load_cookies_from_file(file_path):
     if os.path.exists(file_path):
         with open(file_path, 'r') as file:
             cookies = file.readlines()
-            # تنسيق الكوكيز بتنسيق Netscape
             cookies_dict = {}
             for line in cookies:
                 if line.startswith('#') or line.strip() == '':
@@ -159,4 +169,4 @@ def load_cookies_from_file(file_path):
 
 # تشغيل البوت
 if __name__ == '__main__':
-    bot.polling(none_stop=True)
+    bot.infinity_polling()
