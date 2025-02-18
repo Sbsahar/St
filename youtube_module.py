@@ -13,6 +13,7 @@ class YoutubeModule:
         self.user_search_data = {}
 
     def setup_handlers(self):
+        # معالجة رسائل البحث عن فيديوهات
         @self.bot.message_handler(func=lambda message: message.text.startswith('/d '))
         def handle_message(message):
             query = message.text[3:].strip()
@@ -35,8 +36,8 @@ class YoutubeModule:
 
             markup = types.InlineKeyboardMarkup()
             for video_id, title, _ in results:
-                btn_video = types.InlineKeyboardButton(f"🎥 {title[:25]}", callback_data=f"preview|{video_id}")
-                btn_download = types.InlineKeyboardButton("⬇️", callback_data=f"download|{video_id}")
+                btn_video = types.InlineKeyboardButton(f"🎥 {title[:25]}", callback_data=f"youtube_preview|{video_id}")
+                btn_download = types.InlineKeyboardButton("⬇️", callback_data=f"youtube_download|{video_id}")
                 markup.row(btn_video, btn_download)
 
             msg = self.bot.send_photo(
@@ -49,12 +50,13 @@ class YoutubeModule:
 
             self.user_search_data[message.chat.id] = {"message_id": msg.message_id, "results": results, "query": query}
 
-        @self.bot.callback_query_handler(func=lambda call: True)
-        def button(call):
+        # معالجة الأزرار الخاصة بالفيديوهات
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith('youtube_'))
+        def youtube_buttons(call):
             data = call.data.split('|')
             chat_id = call.message.chat.id
 
-            if data[0] == "preview":
+            if data[0] == "youtube_preview":
                 video_id = data[1]
                 if chat_id not in self.user_search_data:
                     return
@@ -69,8 +71,8 @@ class YoutubeModule:
 
                 markup = types.InlineKeyboardMarkup()
                 for vid, title, _ in results:
-                    btn_video = types.InlineKeyboardButton(f"🎥 {title[:25]}", callback_data=f"preview|{vid}")
-                    btn_download = types.InlineKeyboardButton("⬇️", callback_data=f"download|{vid}")
+                    btn_video = types.InlineKeyboardButton(f"🎥 {title[:25]}", callback_data=f"youtube_preview|{vid}")
+                    btn_download = types.InlineKeyboardButton("⬇️", callback_data=f"youtube_download|{vid}")
                     markup.row(btn_video, btn_download)
 
                 self.bot.edit_message_media(
@@ -80,7 +82,7 @@ class YoutubeModule:
                     reply_markup=markup
                 )
 
-            elif data[0] == "download":
+            elif data[0] == "youtube_download":
                 video_id = data[1]
                 loading_msg = self.bot.send_message(chat_id, '<b>جاري التحميل... 🔄</b>', parse_mode='HTML')
 
