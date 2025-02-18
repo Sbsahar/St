@@ -1,9 +1,9 @@
 import os
 import yt_dlp
-import time
 from googleapiclient.discovery import build
 import telebot
 from telebot import types
+import time
 
 # إعدادات البوت
 TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
@@ -64,15 +64,16 @@ def handle_message(message):
 
             markup.add(button_online, button_download)
 
+        # حفظ نتائج البحث في الذاكرة (سنستخدم dictionary لتخزين النتائج)
+        bot_data = {'results': search_results, 'message_id': message.message_id}
+        bot.set_chat_data(message.chat.id, bot_data)
+
+        # إرسال الرسالة الأولى
         bot.send_message(
             message.chat.id,
             "اختر من بين هذه النتائج:",
             reply_markup=markup,
         )
-        
-        # حفظ نتائج البحث في الذاكرة
-        bot_data = {'results': search_results}
-        bot.set_data(message.chat.id, bot_data)
 
 # التعامل مع الأزرار
 @bot.callback_query_handler(func=lambda call: True)
@@ -81,7 +82,8 @@ def button(call):
 
     if data[0] == 'change_thumbnail':
         idx = int(data[1])
-        search_results = bot.get_data(call.message.chat.id)['results']
+        bot_data = bot.get_chat_data(call.message.chat.id)
+        search_results = bot_data['results']
         video_id, thumbnail_url, video_title = search_results[idx]
         
         # تحديث الصورة المصغرة
@@ -90,6 +92,9 @@ def button(call):
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
         )
+
+        # إضافة رسالة منبثقة لتأكيد التغيير
+        bot.answer_callback_query(call.id, text="تم تغيير الصورة المصغرة!")
 
     elif data[0] == 'download':
         video_id = data[1]
@@ -119,13 +124,16 @@ def download_media(call, download_type, url, quality, loading_msg):
             if download_type == 'audio':
                 file_path = file_path.replace('.webm', '.mp3')
 
-            # رفع الملف الصوتي
+            # إرسال نسبة التحميل
+            total_size = os.path.getsize(file_path)
+            bot.edit_message_text(f"<b>تحميل: {0}%...</b>", chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode="HTML")
+
             with open(file_path, 'rb') as file:
                 bot.send_audio(call.message.chat.id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ⋙")
 
             os.remove(file_path)
 
-            # حذف رسالة "تم التحميل 🎶 جاري الرفع..." بعد الرفع
+            # حذف رسالة التحميل بعد الرفع
             bot.delete_message(call.message.chat.id, loading_msg.message_id)
 
             # حذف نتائج البحث بعد التحميل
