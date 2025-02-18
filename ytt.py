@@ -1,9 +1,9 @@
 import os
 import yt_dlp
+import time
 from googleapiclient.discovery import build
 import telebot
 from telebot import types
-import time
 
 # إعدادات البوت
 TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
@@ -12,7 +12,6 @@ YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
 BOT_USERNAME = '@SY_SBbot'
 
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
-
 bot = telebot.TeleBot(TOKEN)
 
 # التحقق من الاشتراك في القناة
@@ -55,7 +54,6 @@ def handle_message(message):
         thumbnail_url = item['snippet']['thumbnails']['high']['url']
         video_title = item['snippet']['title']
 
-        # الأزرار مع الأسماء واضحة
         markup = types.InlineKeyboardMarkup()
         button = types.InlineKeyboardButton("تحميل MP3", callback_data=f'audio|{video_id}|mp3')
         markup.add(button)
@@ -83,9 +81,26 @@ def button(call):
     
     video_url = f'https://www.youtube.com/watch?v={video_id}'
     
-    loading_msg = bot.send_message(call.message.chat.id, '<b>جاري التحميل..🔄</b>', parse_mode='HTML')
+    # إرسال رسالة التحميل الأولية
+    loading_msg = bot.send_message(call.message.chat.id, '<b>جاري التحميل... 🔄</b>', parse_mode='HTML')
 
-    simulate_progress(call.message.chat.id, loading_msg.message_id)
+    # تحديث الرسالة تدريجيًا مع شريط التقدم
+    progress_stages = [
+        "█▒▒▒▒▒▒▒▒▒10%",
+        "██▒▒▒▒▒▒▒▒20%",
+        "███▒▒▒▒▒▒▒30%",
+        "████▒▒▒▒▒▒40%",
+        "█████▒▒▒▒▒50%",
+        "████████▒▒80%",
+        "██████████100%",
+        "تم التحميل 🎶 جاري الرفع..."
+    ]
+
+    for stage in progress_stages:
+        time.sleep(1)  # انتظار ثانية واحدة قبل التحديث
+        bot.edit_message_text(f"<b>{stage}</b>", chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
+
+    # تحميل الوسائط
     download_media(call, download_type, video_url, quality, loading_msg)
 
 # عرض خيارات التحميل
@@ -95,23 +110,6 @@ def show_download_options(message, url):
     markup.add(button)
 
     bot.send_message(message.chat.id, '<b>اختر نوع التحميل:</b>', reply_markup=markup, parse_mode='HTML')
-
-# تحديث رسالة التحميل بشكل تدريجي
-def simulate_progress(chat_id, message_id):
-    progress_bar = [
-        "█▒▒▒▒▒▒▒▒▒10%",
-        "██▒▒▒▒▒▒▒▒20%",
-        "███▒▒▒▒▒▒▒30%",
-        "████▒▒▒▒▒40%",
-        "█████▒▒▒▒▒50%",
-        "███████▒▒70%",
-        "████████▒▒80%",
-        "██████████100%"
-    ]
-    
-    for step in progress_bar:
-        bot.edit_message_text(f"<b>{step}</b>", chat_id=chat_id, message_id=message_id, parse_mode='HTML')
-        time.sleep(1)
 
 # تحميل الصوت
 def download_media(call, download_type, url, quality, loading_msg):
@@ -140,17 +138,21 @@ def download_media(call, download_type, url, quality, loading_msg):
             if download_type == 'audio':
                 file_path = file_path.replace('.webm', '.mp3')
 
+            # تعديل الرسالة الأخيرة إلى "جاري الرفع..."
             bot.edit_message_text('<b>تم التحميل 🎶 جاري الرفع...</b>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
 
             with open(file_path, 'rb') as file:
                 bot.send_audio(call.message.chat.id, file, caption=f"تم التحميل بواسطة {BOT_USERNAME} ⋙")  
-                
+
             os.remove(file_path)
+
+            # حذف رسالة "تم التحميل 🎶 جاري الرفع..." بعد الرفع
+            bot.delete_message(call.message.chat.id, loading_msg.message_id)
 
     except Exception as e:
         bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
 
-# دالة لتحميل الكوكيز من ملف TXT بتنسيق Netscape
+# تحميل الكوكيز من ملف
 def load_cookies_from_file(file_path):
     if os.path.exists(file_path):
         with open(file_path, 'r') as file:
@@ -169,4 +171,4 @@ def load_cookies_from_file(file_path):
 
 # تشغيل البوت
 if __name__ == '__main__':
-    bot.infinity_polling()
+    bot.polling(none_stop=True)
