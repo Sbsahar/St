@@ -154,13 +154,9 @@ def download_media(call, download_type, url, quality, loading_msg):
 
             os.remove(file_path)
 
-            # حذف رسالة "تم التحميل 🎶 جاري الرفع..." بعد الرفع
-            bot.delete_message(call.message.chat.id, loading_msg.message_id)
-
-            # إرسال الرسالة و حذفها بعد 2 ثانية
-            result_msg = bot.send_message(call.message.chat.id, '<b>نتائج البحث عن:</b> سوريا جنة\n\nاختر فيديو لمشاهدته أو تحميله', parse_mode='HTML')
+            # حذف رسالة الأزرار بعد 2 ثانية من إرسال الملف الصوتي
             time.sleep(2)
-            bot.delete_message(call.message.chat.id, result_msg.message_id)
+            bot.delete_message(call.message.chat.id, loading_msg.message_id)
 
     except Exception as e:
         bot.edit_message_text(f'<b>خطأ أثناء التحميل:</b> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
