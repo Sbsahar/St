@@ -14,7 +14,6 @@ class YoutubeModule:
         self.user_search_data = {}
 
     def setup_handlers(self):
-        # معالجة رسائل البحث عن فيديوهات
         @self.bot.message_handler(func=lambda message: message.text.startswith('/ty '))
         def handle_message(message):
             query = message.text[3:].strip()
@@ -37,17 +36,14 @@ class YoutubeModule:
 
             markup = types.InlineKeyboardMarkup()
             for video_id, title, _ in results:
-                # زر المعاينة كما هو
                 btn_video = types.InlineKeyboardButton(
                     f"🎶 {title[:25]}",
                     callback_data=f"youtube_preview|{video_id}"
                 )
-                # زر تنزيل الصوت MP3
                 btn_download_audio = types.InlineKeyboardButton(
                     "MP3🎵",
                     callback_data=f"youtube_download|{video_id}"
                 )
-                # زر تنزيل الفيديو بدقة SD
                 btn_download_video = types.InlineKeyboardButton(
                     "Video📹",
                     callback_data=f"youtube_download_video|{video_id}"
@@ -62,7 +58,6 @@ class YoutubeModule:
                 parse_mode='HTML'
             )
 
-            # جدولة حذف الرسالة خلال 60 ثانية إذا لم يتم استخدامها
             def delete_message():
                 try:
                     self.bot.delete_message(message.chat.id, msg.message_id)
@@ -81,13 +76,11 @@ class YoutubeModule:
                 "delete_timer": timer
             }
 
-        # معالجة الأزرار الخاصة بالفيديوهات
         @self.bot.callback_query_handler(func=lambda call: call.data.startswith('youtube_'))
         def youtube_buttons(call):
             data = call.data.split('|')
             chat_id = call.message.chat.id
 
-            # في حال ضغط المستخدم على زر يتم إلغاء حذف الرسالة المؤقت
             if chat_id in self.user_search_data:
                 timer = self.user_search_data[chat_id].get("delete_timer")
                 if timer:
@@ -108,7 +101,7 @@ class YoutubeModule:
                         new_thumbnail = thumb
                         break
                 if new_thumbnail is None:
-                    new_thumbnail = results[0][2]  # قيمة افتراضية إذا لم يُعثر على الفيديو
+                    new_thumbnail = results[0][2]
 
                 markup = types.InlineKeyboardMarkup()
                 for vid, title, _ in results:
@@ -160,7 +153,6 @@ class YoutubeModule:
                         parse_mode='HTML'
                     )
 
-                # تنزيل الصوت باستخدام التنسيق الحالي
                 self.download_media(call, 'audio', video_id, 'bestaudio', loading_msg)
 
             elif data[0] == "youtube_download_video":
@@ -184,11 +176,9 @@ class YoutubeModule:
                         parse_mode='HTML'
                     )
 
-                # تنزيل الفيديو بدقة SD (576p) مع استخدام ملفات الكوكيز
-                self.download_media(call, 'video', video_id, 'sd', loading_msg)
+                self.download_media(call, 'video', video_id, 'hd', loading_msg)
 
     def download_media(self, call, download_type, url, quality, loading_msg):
-        # استخدام ملفات الكوكيز كما هو
         cookies_file_path = 'cookies.txt'
         cookies = self.load_cookies_from_file(cookies_file_path)
 
@@ -205,17 +195,25 @@ class YoutubeModule:
             ydl_opts = {
                 'outtmpl': '%(title)s.%(ext)s',
                 'format': 'bestaudio/best',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192'
+                }],
                 'timeout': 999999999,
-                'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}],
                 'retries': 3,
                 'cookiefile': cookies_file_path,
                 'cookies': cookies,
             }
         elif download_type == 'video':
-            # نستخدم صيغة لتحميل الفيديو بدقة SD (576p) مع الصوت
             ydl_opts = {
-                'outtmpl': '%(title)s.%(ext)s',
-                'format': 'bestvideo[height<=576]+bestaudio/best',
+                'outtmpl': '%(title)s.mp4',
+                'format': 'bestvideo[ext=mp4][height<=720]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                'postprocessors': [{
+                    'key': 'FFmpegVideoConvertor',
+                    'preferedformat': 'mp4'
+                }],
+                'merge_output_format': 'mp4',
                 'timeout': 999999999,
                 'retries': 3,
                 'cookiefile': cookies_file_path,
