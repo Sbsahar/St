@@ -208,7 +208,7 @@ class YoutubeModule:
         elif download_type == 'video':
             ydl_opts = {
                 'outtmpl': '%(title)s.mp4',
-                'format': 'bestvideo[ext=mp4][height<=720]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                'format': 'bestvideo[ext=mp4][height<=480]+bestaudio[ext=m4a]/best[ext=mp4]/best',
                 'postprocessors': [{
                     'key': 'FFmpegVideoConvertor',
                     'preferedformat': 'mp4'
