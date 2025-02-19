@@ -49,7 +49,7 @@ class YoutubeModule:
                 )
                 # زر تنزيل الفيديو بدقة SD
                 btn_download_video = types.InlineKeyboardButton(
-                    "SD📹",
+                    "Video📹",
                     callback_data=f"youtube_download_video|{video_id}"
                 )
                 markup.row(btn_video, btn_download_audio, btn_download_video)
@@ -113,15 +113,15 @@ class YoutubeModule:
                 markup = types.InlineKeyboardMarkup()
                 for vid, title, _ in results:
                     btn_video = types.InlineKeyboardButton(
-                        f"MP3🎵 {title[:25]}",
+                        f"🔸 {title[:25]}",
                         callback_data=f"youtube_preview|{vid}"
                     )
                     btn_download = types.InlineKeyboardButton(
-                        "🎶⬇️",
+                        "MP3🎶",
                         callback_data=f"youtube_download|{vid}"
                     )
                     btn_download_video = types.InlineKeyboardButton(
-                        "SD📹",
+                        "video📹",
                         callback_data=f"youtube_download_video|{vid}"
                     )
                     markup.row(btn_video, btn_download, btn_download_video)
