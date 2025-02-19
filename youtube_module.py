@@ -1,6 +1,7 @@
 import os
 import yt_dlp
 import time
+import threading
 from googleapiclient.discovery import build
 from telebot import types
 
@@ -36,8 +37,14 @@ class YoutubeModule:
 
             markup = types.InlineKeyboardMarkup()
             for video_id, title, _ in results:
-                btn_video = types.InlineKeyboardButton(f"🎶 {title[:25]}", callback_data=f"youtube_preview|{video_id}")
-                btn_download = types.InlineKeyboardButton("MP3🎵", callback_data=f"youtube_download|{video_id}")
+                btn_video = types.InlineKeyboardButton(
+                    f"🎶 {title[:25]}",
+                    callback_data=f"youtube_preview|{video_id}"
+                )
+                btn_download = types.InlineKeyboardButton(
+                    "MP3🎵",
+                    callback_data=f"youtube_download|{video_id}"
+                )
                 markup.row(btn_video, btn_download)
 
             msg = self.bot.send_photo(
@@ -48,13 +55,37 @@ class YoutubeModule:
                 parse_mode='HTML'
             )
 
-            self.user_search_data[message.chat.id] = {"message_id": msg.message_id, "results": results, "query": query}
+            # جدولة حذف الرسالة خلال 60 ثانية إذا لم يتم استخدامها
+            def delete_message():
+                try:
+                    self.bot.delete_message(message.chat.id, msg.message_id)
+                except Exception:
+                    pass
+                if message.chat.id in self.user_search_data:
+                    del self.user_search_data[message.chat.id]
+
+            timer = threading.Timer(60, delete_message)
+            timer.start()
+
+            self.user_search_data[message.chat.id] = {
+                "message_id": msg.message_id,
+                "results": results,
+                "query": query,
+                "delete_timer": timer
+            }
 
         # معالجة الأزرار الخاصة بالفيديوهات
         @self.bot.callback_query_handler(func=lambda call: call.data.startswith('youtube_'))
         def youtube_buttons(call):
             data = call.data.split('|')
             chat_id = call.message.chat.id
+
+            # في حال ضغط المستخدم على زر يتم إلغاء حذف الرسالة المؤقت
+            if chat_id in self.user_search_data:
+                timer = self.user_search_data[chat_id].get("delete_timer")
+                if timer:
+                    timer.cancel()
+                    self.user_search_data[chat_id].pop("delete_timer", None)
 
             if data[0] == "youtube_preview":
                 video_id = data[1]
@@ -64,27 +95,45 @@ class YoutubeModule:
                 results = self.user_search_data[chat_id]["results"]
                 query = self.user_search_data[chat_id]["query"]
 
+                new_thumbnail = None
                 for vid, title, thumb in results:
                     if vid == video_id:
                         new_thumbnail = thumb
                         break
+                if new_thumbnail is None:
+                    new_thumbnail = results[0][2]  # قيمة افتراضية إذا لم يُعثر على الفيديو
 
                 markup = types.InlineKeyboardMarkup()
                 for vid, title, _ in results:
-                    btn_video = types.InlineKeyboardButton(f"MP3🎵 {title[:25]}", callback_data=f"youtube_preview|{vid}")
-                    btn_download = types.InlineKeyboardButton("🎶⬇️", callback_data=f"youtube_download|{vid}")
+                    btn_video = types.InlineKeyboardButton(
+                        f"MP3🎵 {title[:25]}",
+                        callback_data=f"youtube_preview|{vid}"
+                    )
+                    btn_download = types.InlineKeyboardButton(
+                        "🎶⬇️",
+                        callback_data=f"youtube_download|{vid}"
+                    )
                     markup.row(btn_video, btn_download)
 
-                self.bot.edit_message_media(
-                    media=types.InputMediaPhoto(new_thumbnail, caption=f"<i>نتائج البحث عن:</i> {query}\n\nاختر فيديو لمشاهدته أو تحميله"),
-                    chat_id=chat_id,
-                    message_id=self.user_search_data[chat_id]["message_id"],
-                    reply_markup=markup
-                )
+                try:
+                    self.bot.edit_message_media(
+                        media=types.InputMediaPhoto(
+                            new_thumbnail,
+                            caption=f"<i>نتائج البحث عن:</i> {query}\n\nاختر فيديو لمشاهدته أو تحميله"
+                        ),
+                        chat_id=chat_id,
+                        message_id=self.user_search_data[chat_id]["message_id"],
+                        reply_markup=markup
+                    )
+                except Exception as e:
+                    # يمكن التعامل مع خطأ تعديل الرسالة هنا
+                    pass
 
             elif data[0] == "youtube_download":
                 video_id = data[1]
-                loading_msg = self.bot.send_message(chat_id, '<i>جاري التحميل... 🔄</i>', parse_mode='HTML')
+                loading_msg = self.bot.send_message(
+                    chat_id, '<i>جاري التحميل... 🔄</i>', parse_mode='HTML'
+                )
 
                 progress_stages = [
                     "█▒▒▒▒▒▒▒▒▒10%", "██▒▒▒▒▒▒▒▒20%", "███▒▒▒▒▒▒▒30%",
@@ -94,7 +143,12 @@ class YoutubeModule:
 
                 for stage in progress_stages:
                     time.sleep(1)
-                    self.bot.edit_message_text(f"<i>{stage}</i>", chat_id=chat_id, message_id=loading_msg.message_id, parse_mode='HTML')
+                    self.bot.edit_message_text(
+                        f"<i>{stage}</i>",
+                        chat_id=chat_id,
+                        message_id=loading_msg.message_id,
+                        parse_mode='HTML'
+                    )
 
                 self.download_media(call, 'audio', video_id, 'bestaudio', loading_msg)
 
@@ -103,7 +157,12 @@ class YoutubeModule:
         cookies = self.load_cookies_from_file(cookies_file_path)
 
         if not cookies:
-            self.bot.edit_message_text('<i>فشل تحميل الكوكيز! يرجى التأكد من الملف.</i>', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
+            self.bot.edit_message_text(
+                '<i>فشل تحميل الكوكيز! يرجى التأكد من الملف.</i>',
+                chat_id=call.message.chat.id,
+                message_id=loading_msg.message_id,
+                parse_mode='HTML'
+            )
             return
 
         ydl_opts = {
@@ -125,7 +184,10 @@ class YoutubeModule:
                     file_path = file_path.replace('.webm', '.mp3')
 
                 with open(file_path, 'rb') as file:
-                    self.bot.send_audio(call.message.chat.id, file, caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙")
+                    self.bot.send_audio(
+                        call.message.chat.id, file,
+                        caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙"
+                    )
 
                 os.remove(file_path)
 
@@ -139,7 +201,12 @@ class YoutubeModule:
                     pass
 
         except Exception as e:
-            self.bot.edit_message_text(f'<i>خطأ أثناء التحميل:</i> {e}', chat_id=call.message.chat.id, message_id=loading_msg.message_id, parse_mode='HTML')
+            self.bot.edit_message_text(
+                f'<i>خطأ أثناء التحميل:</i> {e}',
+                chat_id=call.message.chat.id,
+                message_id=loading_msg.message_id,
+                parse_mode='HTML'
+            )
 
     def load_cookies_from_file(self, file_path):
         if os.path.exists(file_path):
