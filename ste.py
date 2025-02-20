@@ -57,6 +57,8 @@ DETECTION_FILE = "detection_status.json"
 group_detection_status = {}
 REPLIES_FILE = "replies.json"
 BANNED_WORDS_FILE = "banned_words.json"
+REPORT_GROUPS_FILE = "report_groups.json"
+report_groups = {}
 
 # القاموس العام لتخزين الكلمات لكل مجموعة بصيغة {"group_id": ["كلمة1", "كلمة2", ...]}
 banned_words = {}
@@ -96,6 +98,21 @@ def load_detection_status():
 def save_detection_status():
     with open(DETECTION_FILE, 'w', encoding='utf-8') as f:
         json.dump(group_detection_status, f, ensure_ascii=False, indent=4)
+def load_report_groups():
+    global report_groups
+    try:
+        with open(REPORT_GROUPS_FILE, "r", encoding="utf-8") as f:
+            report_groups = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        report_groups = {}
+
+# حفظ إعدادات التقارير
+def save_report_groups():
+    with open(REPORT_GROUPS_FILE, "w", encoding="utf-8") as f:
+        json.dump(report_groups, f, ensure_ascii=False, indent=4)
+
+load_report_groups()
+
 
 def save_welcome():
     with open('welcome.json', 'w') as f:
@@ -472,7 +489,60 @@ def process_group_id_step(message):
         schedule_daily_report(group_id)
     except ValueError:
         bot.send_message(message.chat.id, "❌ يرجى إدخال ID صحيح للمجموعة.")        
-        
+
+@bot.message_handler(commands=['setreportgroup'])
+def set_report_group(message):
+    """تحديد مجموعة التقارير للقناة"""
+    if message.chat.type != "supergroup":
+        bot.reply_to(message, "❌ يجب أن تكون في مجموعة لتعيينها كمجموعة تقارير.")
+        return
+
+    if not message.reply_to_message or not message.reply_to_message.forward_from_chat:
+        bot.reply_to(message, "❌ يجب عليك إعادة توجيه أي رسالة من القناة التي تريد تعيينها.")
+        return
+
+    channel_id = str(message.reply_to_message.forward_from_chat.id)
+    report_groups[channel_id] = message.chat.id
+    save_report_groups()
+
+    bot.reply_to(message, f"✅ تم تعيين هذه المجموعة كمجموعة تقارير للقناة: {message.reply_to_message.forward_from_chat.title}")
+
+def send_violation_report(channel_id, message, violation_type):
+    """إرسال تقرير لمجموعة التقارير الخاصة بالقناة"""
+    report_group_id = report_groups.get(str(channel_id))
+    if not report_group_id:
+        return
+
+    report_text = (
+        f"🚨 **تقرير مخالفة في القناة** 🚨\n"
+        f"📢 **القناة:** [{message.chat.title}](https://t.me/{message.chat.username})\n"
+        f"⚠️ **المخالفة:** {violation_type}\n"
+        f"🕒 **الوقت:** {time.strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+
+    try:
+        bot.send_message(report_group_id, report_text, parse_mode="Markdown", disable_web_page_preview=True)
+    except Exception as e:
+        print(f"❌ خطأ في إرسال التقرير: {e}")
+
+@bot.channel_post_handler(content_types=['photo'])
+def handle_channel_photo(message):
+    channel_checker.process_channel_photo(message)
+
+@bot.channel_post_handler(content_types=['video'])
+def handle_channel_video(message):
+    channel_checker.process_channel_video(message)
+
+@bot.channel_post_handler(content_types=['sticker'])
+def handle_channel_sticker(message):
+    channel_checker.process_channel_sticker(message)
+
+@bot.channel_post_handler(func=lambda message: message.entities and any(entity.type == 'custom_emoji' for entity in message.entities))
+def handle_channel_custom_emoji(message):
+    channel_checker.process_channel_custom_emoji(message)
+
+
+
 @bot.message_handler(commands=['gbt'])
 def handle_gbt_command(message):
     """ التعامل مع الأمر /gbt """
