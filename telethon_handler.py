@@ -3,8 +3,7 @@ import threading
 import tempfile
 import requests
 from telethon import TelegramClient, events
-def run_telethon():
-    from ste import bot, check_image_safety, send_violation_report, n2, TOKEN
+from ste import bot, check_image_safety, send_violation_report, n2, TOKEN
     # باقي الكود هنا
 
 # عوّن بيانات Telethon (استبدل API_ID و API_HASH بالقيم الخاصة بك)
