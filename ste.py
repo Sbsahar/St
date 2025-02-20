@@ -572,10 +572,7 @@ def handle_channel_sticker(message):
 @bot.channel_post_handler(func=lambda message: message.entities and any(entity.type == 'custom_emoji' for entity in message.entities))
 def handle_channel_custom_emoji(message):
     channel_checker.process_channel_custom_emoji(message)
-
-@bot.channel_post_edit_handler(content_types=['text'])
-def handle_edited_channel_custom_emoji(message):
-    channel_checker.process_edited_channel_custom_emoji(message)
+    
     
     
 @bot.channel_post_handler(content_types=['animation'])
