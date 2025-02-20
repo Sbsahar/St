@@ -283,3 +283,66 @@ def process_edited_channel_media(message):
 
 
 
+
+
+
+
+
+def process_channel_media(message):
+    """فحص جميع أنواع الميديا في القنوات"""
+
+    if message.content_type == 'photo':
+        file_id = message.photo[-1].file_id
+        file_info = bot.get_file(file_id)
+        file_link = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
+
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                response = requests.get(file_link)
+                if response.status_code == 200:
+                    tmp_file.write(response.content)
+                    temp_path = tmp_file.name
+                else:
+                    print(f"❌ فشل تحميل الصورة: {response.status_code}")
+                    return
+
+            res = check_image_safety(temp_path)
+            os.remove(temp_path)
+
+            if res == 'nude':
+                bot.delete_message(message.chat.id, message.message_id)
+                send_violation_report(message.chat.id, message, "📸 صورة غير لائقة")
+
+        except Exception as e:
+            print(f"❌ خطأ أثناء فحص الصورة في القناة: {e}")
+
+    elif message.content_type == 'sticker':
+        if not message.sticker.thumb:
+            return
+
+        file_info = bot.get_file(message.sticker.thumb.file_id)
+        sticker_url = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
+
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                response = requests.get(sticker_url)
+                if response.status_code == 200:
+                    tmp_file.write(response.content)
+                    temp_path = tmp_file.name
+                else:
+                    print(f"❌ فشل تحميل الملصق: {response.status_code}")
+                    return
+
+            res = check_image_safety(temp_path)
+            os.remove(temp_path)
+
+            if res == 'nude':
+                bot.delete_message(message.chat.id, message.message_id)
+                send_violation_report(message.chat.id, message, "🎭 ملصق غير لائق")
+
+        except Exception as e:
+            print(f"❌ خطأ أثناء فحص الملصق في القناة: {e}")
+
+
+
+
