@@ -3,6 +3,31 @@ import os
 import tempfile
 import requests
 
+
+def process_channel_media(content, file_extension, message, media_type):
+    """
+    معالجة الميديا (الفيديو والملفات المتحركة) باستخدام OpenNSFW2.
+    يتم حفظ المحتوى مؤقتًا، ثم تحليل الفيديو باستخدام predict_video_frames.
+    إذا كان أي إطار بنسبة NSFW >= 0.5، يتم اعتبار المحتوى غير لائق.
+    """
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
+            temp_file.write(content)
+            temp_file.close()
+            
+            # استخدام دالة predict_video_frames لتحليل الفيديو
+            elapsed_seconds, nsfw_probabilities = n2.predict_video_frames(temp_file.name)
+            
+            # إذا كان هناك أي إطار بنسبة NSFW >= 0.5، يعتبر المحتوى غير لائق
+            if any(prob >= 0.5 for prob in nsfw_probabilities):
+                bot.delete_message(message.chat.id, message.message_id)
+                send_violation_report(message.chat.id, message, f"🎥 {media_type} غير لائق")
+
+            os.unlink(temp_file.name)
+    except Exception as e:
+        print(f"❌ خطأ في معالجة الميديا في القناة: {e}")
+
+
 def process_channel_photo(message):
     """فحص الصور في القنوات"""
     file_id = message.photo[-1].file_id
@@ -229,28 +254,7 @@ def process_edited_channel_media(message):
 
 
 
-def process_channel_media(content, file_extension, message, media_type):
-    """
-    معالجة الميديا (الفيديو والملفات المتحركة) باستخدام OpenNSFW2.
-    يتم حفظ المحتوى مؤقتًا، ثم تحليل الفيديو باستخدام predict_video_frames.
-    إذا كان أي إطار بنسبة NSFW >= 0.5، يتم اعتبار المحتوى غير لائق.
-    """
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
-            temp_file.write(content)
-            temp_file.close()
-            
-            # استخدام دالة predict_video_frames لتحليل الفيديو
-            elapsed_seconds, nsfw_probabilities = n2.predict_video_frames(temp_file.name)
-            
-            # إذا كان هناك أي إطار بنسبة NSFW >= 0.5، يعتبر المحتوى غير لائق
-            if any(prob >= 0.5 for prob in nsfw_probabilities):
-                bot.delete_message(message.chat.id, message.message_id)
-                send_violation_report(message.chat.id, message, f"🎥 {media_type} غير لائق")
 
-            os.unlink(temp_file.name)
-    except Exception as e:
-        print(f"❌ خطأ في معالجة الميديا في القناة: {e}")
 
 def process_channel_gif(message):
     """فحص الصور المتحركة في القنوات"""
@@ -306,60 +310,7 @@ def check_edited_messages():
 
 
 
-def process_channel_media(message):
-    """فحص جميع أنواع الميديا في القنوات"""
 
-    if message.content_type == 'photo':
-        file_id = message.photo[-1].file_id
-        file_info = bot.get_file(file_id)
-        file_link = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
-
-        try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
-                response = requests.get(file_link)
-                if response.status_code == 200:
-                    tmp_file.write(response.content)
-                    temp_path = tmp_file.name
-                else:
-                    print(f"❌ فشل تحميل الصورة: {response.status_code}")
-                    return
-
-            res = check_image_safety(temp_path)
-            os.remove(temp_path)
-
-            if res == 'nude':
-                bot.delete_message(message.chat.id, message.message_id)
-                send_violation_report(message.chat.id, message, "📸 صورة غير لائقة")
-
-        except Exception as e:
-            print(f"❌ خطأ أثناء فحص الصورة في القناة: {e}")
-
-    elif message.content_type == 'sticker':
-        if not message.sticker.thumb:
-            return
-
-        file_info = bot.get_file(message.sticker.thumb.file_id)
-        sticker_url = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
-
-        try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
-                response = requests.get(sticker_url)
-                if response.status_code == 200:
-                    tmp_file.write(response.content)
-                    temp_path = tmp_file.name
-                else:
-                    print(f"❌ فشل تحميل الملصق: {response.status_code}")
-                    return
-
-            res = check_image_safety(temp_path)
-            os.remove(temp_path)
-
-            if res == 'nude':
-                bot.delete_message(message.chat.id, message.message_id)
-                send_violation_report(message.chat.id, message, "🎭 ملصق غير لائق")
-
-        except Exception as e:
-            print(f"❌ خطأ أثناء فحص الملصق في القناة: {e}")
 
 
 def process_edited_channel_media(message):
