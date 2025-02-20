@@ -226,8 +226,6 @@ def is_user_admin(chat_id, user_id):
         print(f"خطأ في التحقق من الصلاحيات: {e}")
         return False
 
-# تمرير `bot` و `is_user_admin` إلى `sh1.py`
-register_download_handlers(bot, is_user_admin)
 
 def check_image_safety(image_path):
     """فحص إذا كانت الصورة غير مناسبة باستخدام مكتبة OpenNSFW2"""
