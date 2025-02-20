@@ -29,7 +29,6 @@ logging.basicConfig(
 )
 API_ID = 21290600
 API_HASH = "2bd56b3e7715ec5862d6f856047caa95"
-client = TelegramClient('edited_monitor', API_ID, API_HASH).start(bot_token=TOKEN)
 TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
 YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
 BOT_USERNAME = '@SY_SBbot'
@@ -66,6 +65,7 @@ report_groups = {}
 
 # القاموس العام لتخزين الكلمات لكل مجموعة بصيغة {"group_id": ["كلمة1", "كلمة2", ...]}
 banned_words = {}
+client = TelegramClient('edited_monitor', API_ID, API_HASH).start(bot_token=TOKEN)
 # قائمة الصلاحيات الافتراضية مع أسمائها بالعربية
 PERMISSION_NAMES = {
     "can_delete_messages": "حذف الرسائل",
