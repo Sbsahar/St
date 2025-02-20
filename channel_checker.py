@@ -4,8 +4,7 @@ import requests
 from ste import bot, check_image_safety, send_violation_report, n2
 
 def process_media(message):
-    """فحص الصور، الفيديوهات، الصور المتحركة، الملصقات، والرموز التعبيرية في الرسالة"""
-
+    """فحص جميع أنواع الميديا (صور، فيديو، متحركة، ملصقات، ورموز تعبيريّة) سواءً في الرسائل الجديدة أو المعدّلة."""
     if message.content_type == 'photo':
         file_id = message.photo[-1].file_id
         file_info = bot.get_file(file_id)
@@ -28,7 +27,7 @@ def process_media(message):
             print(f"❌ خطأ أثناء فحص الصورة: {e}")
 
     elif message.content_type in ['video', 'animation']:
-        # سواء كان فيديو أو صورة متحركة، نستخدم نفس المعالجة (ملف بصيغة mp4)
+        # سواء كان فيديو أو صورة متحركة نستخدم نفس المعالجة مع امتداد ".mp4"
         file_obj = message.video if message.content_type == 'video' else message.animation
         file_id = file_obj.file_id
         file_info = bot.get_file(file_id)
@@ -42,7 +41,6 @@ def process_media(message):
                 else:
                     print(f"❌ فشل تحميل الفيديو/الصورة المتحركة: {response.status_code}")
                     return
-            # تحليل الفيديو/الصورة المتحركة باستخدام OpenNSFW2
             elapsed_seconds, nsfw_probabilities = n2.predict_video_frames(temp_path)
             os.remove(temp_path)
             if any(prob >= 0.5 for prob in nsfw_probabilities):
@@ -54,10 +52,10 @@ def process_media(message):
 
     elif message.content_type == 'sticker' and getattr(message.sticker, 'thumb', None):
         file_info = bot.get_file(message.sticker.thumb.file_id)
-        sticker_url = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
+        file_link = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
-                response = requests.get(sticker_url)
+                response = requests.get(file_link)
                 if response.status_code == 200:
                     tmp_file.write(response.content)
                     temp_path = tmp_file.name
@@ -101,5 +99,5 @@ def process_media(message):
         print(f"🔄 الرسالة في {message.chat.title} لا تحتوي على ميديا قابلة للفحص.")
 
 def process_edited_channel_media(message):
-    """فحص جميع الرسائل المعدلة في القناة بغض النظر عن نوع الميديا"""
+    """فحص الرسائل المعدّلة باستخدام نفس منطق الفحص للرسائل الجديدة"""
     process_media(message)
