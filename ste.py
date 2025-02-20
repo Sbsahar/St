@@ -1,4 +1,3 @@
-from telethon_handler import run_telethon
 import channel_checker
 import threading
 from youtube_module import YoutubeModule
@@ -2436,7 +2435,7 @@ load_banned_words()
 load_detection_status()          
 reset_daily_reports()  
 
-
+from telethon_handler import run_telethon
 threading.Thread(target=run_telethon, daemon=True).start()
 
 
