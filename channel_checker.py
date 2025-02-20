@@ -200,21 +200,100 @@ def process_channel_media(message):
             print(f"❌ خطأ أثناء فحص الرموز التعبيرية في القناة: {e}")
 
 
+def process_edited_photo(message):
+    """فحص الصور المعدلة"""
+    file_id = message.photo[-1].file_id
+    file_info = bot.get_file(file_id)
+    file_link = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+            response = requests.get(file_link)
+            if response.status_code == 200:
+                tmp_file.write(response.content)
+                temp_path = tmp_file.name
+            else:
+                print(f"❌ فشل تحميل الصورة المعدلة: {response.status_code}")
+                return
+
+        res = check_image_safety(temp_path)
+        os.remove(temp_path)
+
+        if res == 'nude':
+            bot.delete_message(message.chat.id, message.message_id)
+            send_violation_report(message.chat.id, message, "✏️ صورة معدلة غير لائقة")
+
+    except Exception as e:
+        print(f"❌ خطأ أثناء فحص الصورة المعدلة في القناة: {e}")
+
+def process_edited_video(message):
+    """فحص الفيديوهات المعدلة"""
+    file_id = message.video.file_id
+    file_info = bot.get_file(file_id)
+    file_link = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_file:
+            response = requests.get(file_link)
+            if response.status_code == 200:
+                tmp_file.write(response.content)
+                temp_path = tmp_file.name
+            else:
+                print(f"❌ فشل تحميل الفيديو المعدل: {response.status_code}")
+                return
+
+        elapsed_seconds, nsfw_probabilities = n2.predict_video_frames(temp_path)
+        os.remove(temp_path)
+
+        if any(prob >= 0.5 for prob in nsfw_probabilities):
+            bot.delete_message(message.chat.id, message.message_id)
+            send_violation_report(message.chat.id, message, "✏️ فيديو معدل غير لائق")
+
+    except Exception as e:
+        print(f"❌ خطأ أثناء فحص الفيديو المعدل في القناة: {e}")
+
+def process_edited_animation(message):
+    """فحص الصور المتحركة المعدلة"""
+    file_id = message.animation.file_id
+    file_info = bot.get_file(file_id)
+    file_link = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".gif") as tmp_file:
+            response = requests.get(file_link)
+            if response.status_code == 200:
+                tmp_file.write(response.content)
+                temp_path = tmp_file.name
+            else:
+                print(f"❌ فشل تحميل الصورة المتحركة المعدلة: {response.status_code}")
+                return
+
+        elapsed_seconds, nsfw_probabilities = n2.predict_video_frames(temp_path)
+        os.remove(temp_path)
+
+        if any(prob >= 0.5 for prob in nsfw_probabilities):
+            bot.delete_message(message.chat.id, message.message_id)
+            send_violation_report(message.chat.id, message, "✏️ صورة متحركة معدلة غير لائقة")
+
+    except Exception as e:
+        print(f"❌ خطأ أثناء فحص الصورة المتحركة المعدلة في القناة: {e}")
+
+
 
 def process_edited_channel_media(message):
     """فحص جميع الرسائل المعدلة في القناة، بغض النظر عن نوعها"""
 
     # فحص الصور المعدلة
     if message.content_type == 'photo':
-        process_channel_media(message)
+        process_edited_photo(message)
 
     # فحص الفيديوهات المعدلة
     elif message.content_type == 'video':
-        process_channel_media(message)
+        process_edited_video(message)
 
     # فحص الصور المتحركة المعدلة
     elif message.content_type == 'animation':
-        process_channel_media(message)
+        process_edited_animation(message)
 
     # فحص الملصقات المعدلة
     elif message.content_type == 'sticker':
