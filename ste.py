@@ -19,8 +19,8 @@ import json
 from telebot.types import BotCommand
 import logging
 from telebot.types import ChatMemberUpdated
-import threading
-from telethon_handler import run_telethon
+def some_function():
+    from telethon_handler import run_telethon 
 # إعدادات التسجيل
 logging.basicConfig(
     level=logging.INFO,
