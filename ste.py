@@ -113,6 +113,34 @@ def save_report_groups():
 
 load_report_groups()
 
+def process_channel_media(message, media_type):
+    """فحص الفيديوهات والصور المتحركة في القنوات"""
+
+    file_id = message.video.file_id if media_type == "فيديو" else message.animation.file_id
+    file_info = bot.get_file(file_id)
+    file_url = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4" if media_type == "فيديو" else ".gif") as temp_file:
+            response = requests.get(file_url)
+            if response.status_code == 200:
+                temp_file.write(response.content)
+                temp_file.close()
+
+                # فحص الفيديو باستخدام OpenNSFW2
+                elapsed_seconds, nsfw_probabilities = n2.predict_video_frames(temp_file.name)
+
+                # إذا كان هناك أي إطار بنسبة NSFW >= 0.5، نحذف الفيديو
+                if any(prob >= 0.5 for prob in nsfw_probabilities):
+                    bot.delete_message(message.chat.id, message.message_id)
+                    send_violation_report(message.chat.id, message, f"🎥 {media_type} غير لائق")
+
+            os.unlink(temp_file.name)
+
+    except Exception as e:
+        print(f"❌ خطأ في معالجة {media_type} في القناة: {e}")
+        
+
 
 def save_welcome():
     with open('welcome.json', 'w') as f:
