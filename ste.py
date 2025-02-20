@@ -1,4 +1,5 @@
 from sh1 import register_download_handlers
+from channel_checker import process_channel_edited_emoji
 import channel_checker
 from youtube_module import YoutubeModule
 import telebot
