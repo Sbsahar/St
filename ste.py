@@ -19,16 +19,12 @@ import json
 from telebot.types import BotCommand
 import logging
 from telebot.types import ChatMemberUpdated
-from telethon import TelegramClient, events
-import asyncio
 # إعدادات التسجيل
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()]
 )
-API_ID = 21290600
-API_HASH = "2bd56b3e7715ec5862d6f856047caa95"
 TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
 YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
 BOT_USERNAME = '@SY_SBbot'
@@ -65,7 +61,6 @@ report_groups = {}
 
 # القاموس العام لتخزين الكلمات لكل مجموعة بصيغة {"group_id": ["كلمة1", "كلمة2", ...]}
 banned_words = {}
-client = TelegramClient('edited_monitor', API_ID, API_HASH).start(bot_token=TOKEN)
 # قائمة الصلاحيات الافتراضية مع أسمائها بالعربية
 PERMISSION_NAMES = {
     "can_delete_messages": "حذف الرسائل",
@@ -111,11 +106,7 @@ def load_report_groups():
         report_groups = {}
 async def run_telethon():
     await client.run_until_disconnected()
-
-def start_telethon():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(run_telethon())        
+        
 
 
 
@@ -2447,8 +2438,6 @@ def send_auto_reply(target_msg, original_message=None):
 load_banned_words()         
 load_detection_status()          
 reset_daily_reports()  
-
-threading.Thread(target=start_telethon, daemon=True).start()
 
 
 
