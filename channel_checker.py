@@ -310,3 +310,53 @@ def process_edited_channel_media(message):
     # إذا لم تكن تحتوي على ميديا، لا نفعل شيئًا
     else:
         print(f"🔄 تم تعديل رسالة في القناة {message.chat.title} ولكنها لا تحتوي على ميديا.")
+
+
+def process_edited_channel_media(message):
+    """فحص جميع الرسائل المعدلة في القناة، بغض النظر عن نوعها"""
+
+    # ننتظر قليلًا حتى يتم تحديث محتوى الرسالة المعدلة بالكامل
+    time.sleep(2)
+
+    try:
+        # الحصول على الرسالة المعدلة بعد التحديث
+        messages = bot.get_chat_history(message.chat.id, limit=5)
+
+        for msg in messages:
+            if msg.message_id == message.message_id:
+                print(f"🔄 تم العثور على الرسالة المعدلة، جاري الفحص...")
+
+                if msg.content_type == 'photo':
+                    process_edited_photo(msg)
+
+                elif msg.content_type == 'video':
+                    process_edited_video(msg)
+
+                elif msg.content_type == 'animation':
+                    process_edited_animation(msg)
+
+                elif msg.content_type == 'sticker':
+                    process_channel_media(msg)
+
+                elif msg.content_type == 'text' and msg.entities:
+                    process_channel_media(msg)
+
+                else:
+                    print(f"⚠️ تم تعديل الرسالة، لكنها لا تحتوي على ميديا.")
+                
+                break  # وجدنا الرسالة، لا داعي لمواصلة البحث
+
+    except Exception as e:
+        print(f"❌ خطأ أثناء فحص الرسائل المعدلة: {e}")
+
+def process_edited_photo(message):
+    """تمرير الصورة المعدلة للفحص"""
+    process_channel_media(message)
+
+def process_edited_video(message):
+    """تمرير الفيديو المعدل للفحص"""
+    process_channel_media(message)
+
+def process_edited_animation(message):
+    """تمرير الصورة المتحركة المعدلة للفحص"""
+    process_channel_media(message)
