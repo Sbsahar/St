@@ -284,51 +284,32 @@ def process_edited_animation(message):
         print(f"❌ خطأ أثناء فحص الصورة المتحركة المعدلة في القناة: {e}")
 
 
-def process_edited_photo(message):
-    """تمرير الصورة المعدلة للفحص"""
-    process_channel_media(message)
-
-def process_edited_video(message):
-    """تمرير الفيديو المعدل للفحص"""
-    process_channel_media(message)
-
-def process_edited_animation(message):
-    """تمرير الصورة المتحركة المعدلة للفحص"""
-    process_channel_media(message)
 
 def process_edited_channel_media(message):
     """فحص جميع الرسائل المعدلة في القناة، بغض النظر عن نوعها"""
 
-    # ننتظر قليلًا حتى يتم تحديث محتوى الرسالة المعدلة بالكامل
-    time.sleep(2)
+    # فحص الصور المعدلة
+    if message.content_type == 'photo' and message.photo:
+        process_edited_photo(message)
 
-    try:
-        # الحصول على الرسالة المعدلة بعد التحديث
-        messages = bot.get_chat_history(message.chat.id, limit=5)
+    # فحص الفيديوهات المعدلة
+    elif message.content_type == 'video' and message.video:
+        process_edited_video(message)
 
-        for msg in messages:
-            if msg.message_id == message.message_id:
-                print(f"🔄 تم العثور على الرسالة المعدلة، جاري الفحص...")
+    # فحص الصور المتحركة المعدلة
+    elif message.content_type == 'animation' and message.animation:
+        process_edited_animation(message)
 
-                if msg.content_type == 'photo':
-                    process_edited_photo(msg)
+    # فحص الملصقات المعدلة
+    elif message.content_type == 'sticker' and message.sticker:
+        process_channel_media(message)
 
-                elif msg.content_type == 'video':
-                    process_edited_video(msg)
+    # فحص الرموز التعبيرية المعدلة
+    elif message.content_type == 'text' and message.entities:
+        process_channel_media(message)
 
-                elif msg.content_type == 'animation':
-                    process_edited_animation(msg)
+    # إذا لم تكن تحتوي على ميديا، لا نفعل شيئًا
+    else:
+        print(f"🔄 تم تعديل رسالة في القناة {message.chat.title} ولكنها لا تحتوي على ميديا.")
 
-                elif msg.content_type == 'sticker':
-                    process_channel_media(msg)
 
-                elif msg.content_type == 'text' and msg.entities:
-                    process_channel_media(msg)
-
-                else:
-                    print(f"⚠️ تم تعديل الرسالة، لكنها لا تحتوي على ميديا.")
-                
-                break  # وجدنا الرسالة، لا داعي لمواصلة البحث
-
-    except Exception as e:
-        print(f"❌ خطأ أثناء فحص الرسائل المعدلة: {e}")
