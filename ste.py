@@ -37,7 +37,6 @@ DEVELOPER_CHAT_ID = 6789179634
 VIDEO_URL = "https://t.me/srevbo67/5" 
 bot = telebot.TeleBot(TOKEN)
 youtube_module = YoutubeModule(bot, YOUTUBE_API_KEY, BOT_USERNAME)
-threading.Thread(target=run_telethon, daemon=True).start()
 youtube_module.setup_handlers()
 welcome_messages = {}
 active_mentions = {}
@@ -2438,3 +2437,6 @@ load_detection_status()
 reset_daily_reports()        
 if __name__ == '__main__':
     bot.polling(none_stop=True)
+
+
+threading.Thread(target=run_telethon, daemon=True).start()
