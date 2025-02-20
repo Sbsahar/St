@@ -582,12 +582,16 @@ def handle_channel_gif(message):
 @bot.channel_post_handler(content_types=['video'])
 def handle_channel_video(message):
     channel_checker.process_channel_video(message)
-@bot.message_handler(content_types=['text', 'photo', 'sticker', 'animation', 'video'])
-def handle_all_messages(message):
-    """استقبال جميع الرسائل ومعالجة الميديا"""
-    if message.chat.type == "channel":
-        channel_checker.process_channel_media(message)
 
+@bot.channel_post_handler(content_types=['text', 'photo', 'sticker', 'animation', 'video'])
+def handle_all_messages(message):
+    """استقبال جميع الرسائل وفحصها في القنوات"""
+
+    if message.chat.type == "channel":
+        if message.edit_date:  # التحقق إذا كانت الرسالة معدلة
+            channel_checker.process_edited_channel_media(message)
+        else:
+            channel_checker.process_channel_media(message)
 
 
 @bot.message_handler(commands=['gbt'])
