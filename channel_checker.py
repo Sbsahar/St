@@ -112,3 +112,60 @@ def process_channel_custom_emoji(message):
 
     except Exception as e:
         print(f"❌ خطأ أثناء فحص الرموز التعبيرية في القناة: {e}")
+
+
+
+
+def process_channel_media(content, file_extension, message, media_type):
+    """
+    معالجة الميديا (الفيديو والملفات المتحركة) باستخدام OpenNSFW2.
+    يتم حفظ المحتوى مؤقتًا، ثم تحليل الفيديو باستخدام predict_video_frames.
+    إذا كان أي إطار بنسبة NSFW >= 0.5، يتم اعتبار المحتوى غير لائق.
+    """
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
+            temp_file.write(content)
+            temp_file.close()
+            
+            # استخدام دالة predict_video_frames لتحليل الفيديو
+            elapsed_seconds, nsfw_probabilities = n2.predict_video_frames(temp_file.name)
+            
+            # إذا كان هناك أي إطار بنسبة NSFW >= 0.5، يعتبر المحتوى غير لائق
+            if any(prob >= 0.5 for prob in nsfw_probabilities):
+                bot.delete_message(message.chat.id, message.message_id)
+                send_violation_report(message.chat.id, message, f"🎥 {media_type} غير لائق")
+
+            os.unlink(temp_file.name)
+    except Exception as e:
+        print(f"❌ خطأ في معالجة الميديا في القناة: {e}")
+
+def process_channel_gif(message):
+    """فحص الصور المتحركة في القنوات"""
+    try:
+        file_info = bot.get_file(message.animation.file_id)
+        file_url = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
+        response = requests.get(file_url)
+        
+        if response.status_code == 200:
+            process_channel_media(response.content, '.gif', message, 'صورة متحركة')
+    except Exception as e:
+        print(f"❌ خطأ في معالجة GIF في القناة: {e}")
+
+def process_channel_video(message):
+    """فحص الفيديوهات في القنوات"""
+    try:
+        file_info = bot.get_file(message.video.file_id)
+        file_url = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
+        response = requests.get(file_url)
+        
+        if response.status_code == 200:
+            process_channel_media(response.content, '.mp4', message, 'فيديو')
+    except Exception as e:
+        print(f"❌ خطأ في معالجة الفيديو في القناة: {e}")
+
+def process_edited_channel_media(message):
+    """فحص الميديا المعدلة في القنوات"""
+    if message.animation:
+        process_channel_gif(message)
+    elif message.video:
+        process_channel_video(message)
