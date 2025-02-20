@@ -1,8 +1,7 @@
-import bot, check_image_safety, send_violation_report
+
 import os
 import tempfile
 import requests
-from bot_setup import bot, check_image_safety, get_premium_sticker_info, send_violation_report
 
 def process_channel_photo(message):
     """فحص الصور في القنوات"""
