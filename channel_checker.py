@@ -35,7 +35,7 @@ def process_channel_media(message):
             os.remove(temp_path)
             if res == 'nude':
                 bot.delete_message(message.chat.id, message.message_id)
-                send_violation_report(message.chat.id, message, "📸 صورة غير لائقة")
+                send_violation_report(message.chat.id, message, "📸 صور اباحي")
         except Exception as e:
             print(f"❌ خطأ أثناء فحص الصورة في القناة: {e}")
 
@@ -57,7 +57,7 @@ def process_channel_media(message):
             os.remove(temp_path)
             if any(prob >= 0.5 for prob in nsfw_probabilities):
                 bot.delete_message(message.chat.id, message.message_id)
-                violation_text = "🎥 فيديو غير لائقة" if message.content_type == 'video' else "🎥 صورة متحركة غير لائقة"
+                violation_text = "🎥 فيديو اباحي " if message.content_type == 'video' else "🎥 GIF اباحي"
                 send_violation_report(message.chat.id, message, violation_text)
         except Exception as e:
             print(f"❌ خطأ أثناء فحص الفيديو/الصورة المتحركة في القناة: {e}")
@@ -78,7 +78,7 @@ def process_channel_media(message):
             os.remove(temp_path)
             if res == 'nude':
                 bot.delete_message(message.chat.id, message.message_id)
-                send_violation_report(message.chat.id, message, "🎭 ملصق غير لائقة")
+                send_violation_report(message.chat.id, message, "🎭 ملصق اباحي")
         except Exception as e:
             print(f"❌ خطأ أثناء فحص الملصق في القناة: {e}")
 
@@ -104,7 +104,7 @@ def process_channel_media(message):
                     os.remove(temp_path)
                     if res == 'nude':
                         bot.delete_message(message.chat.id, message.message_id)
-                        send_violation_report(message.chat.id, message, "🤬 رمز تعبيري غير لائقة")
+                        send_violation_report(message.chat.id, message, " ملصق برايم اباحي")
         except Exception as e:
             print(f"❌ خطأ أثناء فحص الرموز التعبيرية في القناة: {e}")
 
@@ -243,4 +243,4 @@ def process_edited_channel_media(message):
         bot.send_message(
             message.chat.id,
             f"⚠️ هناك تعديل لرسالة جديدة في القناة.\nرابط الرسالة: {message_link}\nلم أتمكن من فحصها بسبب سياسة تلغرام."
-            )
+    )
