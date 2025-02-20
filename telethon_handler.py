@@ -14,10 +14,13 @@ API_HASH = "2bd56b3e7715ec5862d6f856047caa95"  # ضع API_HASH الخاص بك �
 # إنشاء Telethon client للبوت باستخدام نفس TOKEN
 client = TelegramClient('edited_monitor', API_ID, API_HASH).start(bot_token=TOKEN)
 def run_telethon():
-    loop = asyncio.new_event_loop()  # إنشاء حلقة جديدة
-    asyncio.set_event_loop(loop)  # تعيين الحلقة كحلقة نشطة للخيط الحالي
+    loop = asyncio.new_event_loop()  
+    asyncio.set_event_loop(loop)
+
     client = TelegramClient('edited_monitor', API_ID, API_HASH).start(bot_token=TOKEN)
-    client.run_until_disconnected()
+
+    # استخدم asyncio.run لتشغيل العميل
+    asyncio.run(client.run_until_disconnected())
 @client.on(events.MessageEdited(chats=lambda e: e.is_channel))
 async def edited_handler(event):
     """
