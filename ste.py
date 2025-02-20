@@ -555,6 +555,8 @@ def send_violation_report(channel_id, message, violation_type):
     except Exception as e:
         print(f"❌ خطأ في إرسال التقرير: {e}")
 
+
+
 @bot.channel_post_handler(content_types=['photo'])
 def handle_channel_photo(message):
     channel_checker.process_channel_photo(message)
@@ -570,6 +572,28 @@ def handle_channel_sticker(message):
 @bot.channel_post_handler(func=lambda message: message.entities and any(entity.type == 'custom_emoji' for entity in message.entities))
 def handle_channel_custom_emoji(message):
     channel_checker.process_channel_custom_emoji(message)
+
+@bot.channel_post_edit_handler(content_types=['text'])
+def handle_edited_channel_custom_emoji(message):
+    channel_checker.process_edited_channel_custom_emoji(message)
+    
+    
+@bot.channel_post_handler(content_types=['animation'])
+def handle_channel_gif(message):
+    channel_checker.process_channel_gif(message)
+
+@bot.channel_post_handler(content_types=['video'])
+def handle_channel_video(message):
+    channel_checker.process_channel_video(message)
+
+@bot.channel_post_edit_handler(content_types=['animation', 'video'])
+def handle_edited_channel_media(message):
+    channel_checker.process_edited_channel_media(message)
+    
+        
+@bot.channel_post_edit_handler(content_types=['photo', 'sticker'])
+def handle_edited_channel_media(message):
+    channel_checker.process_edited_channel_media(message)
 
 
 
