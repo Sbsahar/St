@@ -1,6 +1,5 @@
 import channel_checker
 import threading
-from telethon_handler import run_telethon  # استيراد دالة تشغيل Telethon
 from youtube_module import YoutubeModule
 import telebot
 import re
@@ -2438,5 +2437,5 @@ reset_daily_reports()
 if __name__ == '__main__':
     bot.polling(none_stop=True)
 
-
+from telethon_handler import run_telethon
 threading.Thread(target=run_telethon, daemon=True).start()
