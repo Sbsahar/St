@@ -106,16 +106,7 @@ def load_report_groups():
     except (FileNotFoundError, json.JSONDecodeError):
         report_groups = {}
 
-def start_telethon_in_background():
-    thread = threading.Thread(target=run_telethon)
-    thread.daemon = True  # هذا سيجعل الخيط يعمل في الخلفية ويغلق عند إنهاء البرنامج
-    thread.start()
 
-# تشغيل Telethon في الخلفية
-start_telethon_in_background()
-
-# يمكن الآن متابعة تنفيذ أي أوامر أخرى في الملف الرئيسي
-print("بدأ تشغيل Telethon في الخلفية...")
 
 # حفظ إعدادات التقارير
 def save_report_groups():
