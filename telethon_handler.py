@@ -2,11 +2,8 @@ import os
 import threading
 import tempfile
 import requests
-from telethon import TelegramClient, events
-
-def run_telethon():
-    # قم بوضع الاستيراد هنا داخل الدالة
-    from ste import bot, check_image_safety, send_violation_report, n2, TOKEN
+from telethon import TelegramClient, event
+from ste import bot, check_image_safety, send_violation_report, n2, TOKEN
 
 # عوّن بيانات Telethon (استبدل API_ID و API_HASH بالقيم الخاصة بك)
 API_ID = 21290600     # ضع API_ID الخاص بك هنا
