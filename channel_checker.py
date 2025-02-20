@@ -197,6 +197,9 @@ def process_channel_media(message):
 
 def process_edited_photo(message):
     """فحص الصور المعدلة"""
+    if not message.photo:
+        return
+
     file_id = message.photo[-1].file_id
     file_info = bot.get_file(file_id)
     file_link = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
@@ -223,6 +226,9 @@ def process_edited_photo(message):
 
 def process_edited_video(message):
     """فحص الفيديوهات المعدلة"""
+    if not message.video:
+        return
+
     file_id = message.video.file_id
     file_info = bot.get_file(file_id)
     file_link = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
@@ -249,6 +255,9 @@ def process_edited_video(message):
 
 def process_edited_animation(message):
     """فحص الصور المتحركة المعدلة"""
+    if not message.animation:
+        return
+
     file_id = message.animation.file_id
     file_info = bot.get_file(file_id)
     file_link = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
@@ -279,19 +288,19 @@ def process_edited_channel_media(message):
     """فحص جميع الرسائل المعدلة في القناة، بغض النظر عن نوعها"""
 
     # فحص الصور المعدلة
-    if message.content_type == 'photo':
+    if message.content_type == 'photo' and message.photo:
         process_edited_photo(message)
 
     # فحص الفيديوهات المعدلة
-    elif message.content_type == 'video':
+    elif message.content_type == 'video' and message.video:
         process_edited_video(message)
 
     # فحص الصور المتحركة المعدلة
-    elif message.content_type == 'animation':
+    elif message.content_type == 'animation' and message.animation:
         process_edited_animation(message)
 
     # فحص الملصقات المعدلة
-    elif message.content_type == 'sticker':
+    elif message.content_type == 'sticker' and message.sticker:
         process_channel_media(message)
 
     # فحص الرموز التعبيرية المعدلة
