@@ -139,33 +139,29 @@ def process_channel_media(content, file_extension, message, media_type):
     except Exception as e:
         print(f"❌ خطأ في معالجة الميديا في القناة: {e}")
 
-def process_channel_gif(message):
-    """فحص الصور المتحركة في القنوات"""
-    try:
-        file_info = bot.get_file(message.animation.file_id)
-        file_url = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
-        response = requests.get(file_url)
-        
-        if response.status_code == 200:
-            process_channel_media(response.content, '.gif', message, 'صورة متحركة')
-    except Exception as e:
-        print(f"❌ خطأ في معالجة GIF في القناة: {e}")
+def process_channel_media(message, media_type):
+    """فحص الفيديوهات والصور المتحركة في القنوات"""
 
-def process_channel_video(message):
-    """فحص الفيديوهات في القنوات"""
-    try:
-        file_info = bot.get_file(message.video.file_id)
-        file_url = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
-        response = requests.get(file_url)
-        
-        if response.status_code == 200:
-            process_channel_media(response.content, '.mp4', message, 'فيديو')
-    except Exception as e:
-        print(f"❌ خطأ في معالجة الفيديو في القناة: {e}")
+    file_id = message.video.file_id if media_type == "فيديو" else message.animation.file_id
+    file_info = bot.get_file(file_id)
+    file_url = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
 
-def process_edited_channel_media(message):
-    """فحص الميديا المعدلة في القنوات"""
-    if message.animation:
-        process_channel_gif(message)
-    elif message.video:
-        process_channel_video(message)
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4" if media_type == "فيديو" else ".gif") as temp_file:
+            response = requests.get(file_url)
+            if response.status_code == 200:
+                temp_file.write(response.content)
+                temp_file.close()
+
+                # فحص الفيديو باستخدام OpenNSFW2
+                elapsed_seconds, nsfw_probabilities = n2.predict_video_frames(temp_file.name)
+
+                # إذا كان هناك أي إطار بنسبة NSFW >= 0.5، نحذف الفيديو
+                if any(prob >= 0.5 for prob in nsfw_probabilities):
+                    bot.delete_message(message.chat.id, message.message_id)
+                    send_violation_report(message.chat.id, message, f"🎥 {media_type} غير لائق")
+
+            os.unlink(temp_file.name)
+
+    except Exception as e:
+        print(f"❌ خطأ في معالجة {media_type} في القناة: {e}")
