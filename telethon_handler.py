@@ -2,7 +2,7 @@ import os
 import threading
 import tempfile
 import requests
-from telethon import TelegramClient, event
+from telethon import TelegramClient, events
 from ste import bot, check_image_safety, send_violation_report, n2, TOKEN
 
 # عوّن بيانات Telethon (استبدل API_ID و API_HASH بالقيم الخاصة بك)
