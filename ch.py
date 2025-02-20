@@ -14,7 +14,7 @@ BOT_TOKEN = "7067951946:AAEEW6mX9JVqwExL0CLVoawGptEKjDCjR3E"  # ضع توكن ا
 
 client = TelegramClient('bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-def process_media(file_path, media_type, event):
+async def process_media(file_path, media_type, event):
     """
     فحص الفيديوهات والمتحركات باستخدام OpenNSFW2.
     إذا كان أي إطار غير لائق، يتم حذف المحتوى.
@@ -26,7 +26,7 @@ def process_media(file_path, media_type, event):
         # إذا كان هناك أي إطار بنسبة NSFW >= 0.5، نحذفه
         if any(prob >= 0.5 for prob in nsfw_probabilities):
             os.remove(file_path)
-            await event.delete()
+            await event.delete()  # هنا تم استخدام await داخل دالة غير متزامنة
             await send_violation_report(event.chat_id, event, f"🎥 {media_type} غير لائق")
 
         os.remove(file_path)
@@ -35,14 +35,14 @@ def process_media(file_path, media_type, event):
         print(f"❌ خطأ في معالجة {media_type}: {e}")
 
 
-def check_image_safety(image_path):
-    """فحص الصورة باستخدام OpenNSFW2"""
+async def check_image_safety(image_path):
+    """فحص الصورة باستخدام OpenNSFW2 بشكل غير متزامن"""
     try:
         # فتح الصورة
         image = Image.open(image_path)
         
         # تحليل الصورة باستخدام النموذج
-        nsfw_probability = n2.predict_image(image)
+        nsfw_probability = await loop.run_in_executor(None, n2.predict_image, image)
         
         # إذا كانت نسبة NSFW > 0.5، نعتبرها غير لائقة
         return 'nude' if nsfw_probability > 0.5 else 'ok'
