@@ -111,6 +111,11 @@ def process_channel_media(message):
 def process_edited_photo(message):
     """فحص الصور المعدلة"""
     if not message.photo:
+        message_link = get_message_link(message)
+        bot.send_message(
+            message.chat.id,
+            f"⚠️ هناك تعديل لرسالة جديدة في القناة.\nرابط الرسالة: {message_link}\nلم أتمكن من فحصها بسبب سياسة تلغرام."
+        )
         return
     file_id = message.photo[-1].file_id
     file_info = bot.get_file(file_id)
@@ -145,6 +150,11 @@ def process_edited_photo(message):
 def process_edited_video(message):
     """فحص الفيديوهات المعدلة"""
     if not message.video:
+        message_link = get_message_link(message)
+        bot.send_message(
+            message.chat.id,
+            f"⚠️ هناك تعديل لرسالة جديدة في القناة.\nرابط الرسالة: {message_link}\nلم أتمكن من فحصها بسبب سياسة تلغرام."
+        )
         return
     file_id = message.video.file_id
     file_info = bot.get_file(file_id)
@@ -179,6 +189,11 @@ def process_edited_video(message):
 def process_edited_animation(message):
     """فحص الصور المتحركة المعدلة"""
     if not message.animation:
+        message_link = get_message_link(message)
+        bot.send_message(
+            message.chat.id,
+            f"⚠️ هناك تعديل لرسالة جديدة في القناة.\nرابط الرسالة: {message_link}\nلم أتمكن من فحصها بسبب سياسة تلغرام."
+        )
         return
     file_id = message.animation.file_id
     file_info = bot.get_file(file_id)
@@ -213,15 +228,14 @@ def process_edited_animation(message):
 
 def process_edited_channel_media(message):
     """فحص جميع الرسائل المعدلة في القناة، بغض النظر عن نوعها"""
-    if message.content_type == 'photo' and message.photo:
+    if message.content_type == 'photo':
         process_edited_photo(message)
-    elif message.content_type == 'video' and message.video:
+    elif message.content_type == 'video':
         process_edited_video(message)
-    elif message.content_type == 'animation' and message.animation:
+    elif message.content_type == 'animation':
         process_edited_animation(message)
-    elif message.content_type == 'sticker' and message.sticker:
-        process_channel_media(message)
-    elif message.content_type == 'text' and message.entities:
+    elif message.content_type in ['sticker', 'text']:
+        # في حالة الملصقات أو النصوص يتم استخدام الفحص الاعتيادي للقناة
         process_channel_media(message)
     else:
         print(f"🔄 تم تعديل رسالة في القناة {message.chat.title} ولكنها لا تحتوي على ميديا.")
@@ -229,4 +243,4 @@ def process_edited_channel_media(message):
         bot.send_message(
             message.chat.id,
             f"⚠️ هناك تعديل لرسالة جديدة في القناة.\nرابط الرسالة: {message_link}\nلم أتمكن من فحصها بسبب سياسة تلغرام."
-        )
+            )
