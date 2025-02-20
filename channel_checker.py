@@ -2,6 +2,7 @@ from ste import bot, check_image_safety, send_violation_report
 import os
 import tempfile
 import requests
+from bot_setup import bot, check_image_safety, get_premium_sticker_info, send_violation_report
 
 def process_channel_photo(message):
     """فحص الصور في القنوات"""
@@ -112,3 +113,43 @@ def process_channel_custom_emoji(message):
 
     except Exception as e:
         print(f"❌ خطأ أثناء فحص الرموز التعبيرية في القناة: {e}")
+
+
+def process_channel_edited_emoji(message):
+    """فحص الرموز التعبيرية المميزة في الرسائل المعدلة داخل القنوات"""
+    if message.chat.type != "channel":
+        return  # التأكد من أن الدالة تعمل فقط داخل القنوات
+
+    if not message.entities:
+        return  # لا يوجد رموز تعبيرية مميزة في الرسالة المعدلة
+
+    custom_emoji_ids = [entity.custom_emoji_id for entity in message.entities if entity.type == 'custom_emoji']
+    if not custom_emoji_ids:
+        return  # لا توجد رموز تعبيرية مميزة تحتاج للفحص
+
+    sticker_links = get_premium_sticker_info(custom_emoji_ids)
+    if not sticker_links:
+        return  # لم يتم العثور على روابط الرموز التعبيرية
+
+    for link in sticker_links:
+        try:
+            # تنزيل الصورة مؤقتًا
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                response = requests.get(link)
+                if response.status_code == 200:
+                    tmp_file.write(response.content)
+                    temp_path = tmp_file.name
+                else:
+                    print(f"❌ فشل تحميل الرمز التعبيري، رمز الحالة: {response.status_code}")
+                    continue
+
+            # فحص الرمز التعبيري
+            res = check_image_safety(temp_path)
+            os.remove(temp_path)
+
+            if res == 'nude':
+                bot.delete_message(message.chat.id, message.message_id)
+                send_violation_report(message.chat.id, message, "🖼️ رمز تعبيري غير لائق")
+
+        except Exception as e:
+            print(f"❌ خطأ أثناء فحص الرموز التعبيرية المعدلة في القناة: {e}")
