@@ -528,11 +528,10 @@ def process_group_id_step(message):
 def handle_channel_media(message):
     channel_checker.process_channel_media(message)
 
-# فحص الرسائل المعدلة عند تعديلها في القناة
 @bot.channel_post_handler(func=lambda message: message.edit_date is not None)
-def handle_edited_channel_media(message):
+def handle_edited_channel_message(message):
+    """التعامل مع جميع الرسائل المعدلة في القنوات"""
     channel_checker.process_edited_channel_media(message)
-
 
 
 
