@@ -1,4 +1,3 @@
-
 import channel_checker
 from youtube_module import YoutubeModule
 import telebot
@@ -523,78 +522,18 @@ def process_group_id_step(message):
     except ValueError:
         bot.send_message(message.chat.id, "❌ يرجى إدخال ID صحيح للمجموعة.")        
 
-@bot.message_handler(commands=['setreportgroup'])
-def set_report_group(message):
-    """تحديد مجموعة التقارير للقناة"""
-    if message.chat.type != "supergroup":
-        bot.reply_to(message, "❌ يجب أن تكون في مجموعة لتعيينها كمجموعة تقارير.")
-        return
-
-    if not message.reply_to_message or not message.reply_to_message.forward_from_chat:
-        bot.reply_to(message, "❌ يجب عليك إعادة توجيه أي رسالة من القناة التي تريد تعيينها.")
-        return
-
-    channel_id = str(message.reply_to_message.forward_from_chat.id)
-    report_groups[channel_id] = message.chat.id
-    save_report_groups()
-
-    bot.reply_to(message, f"✅ تم تعيين هذه المجموعة كمجموعة تقارير للقناة: {message.reply_to_message.forward_from_chat.title}")
-
-def send_violation_report(channel_id, message, violation_type):
-    """إرسال تقرير لمجموعة التقارير الخاصة بالقناة"""
-    report_group_id = report_groups.get(str(channel_id))
-    if not report_group_id:
-        return
-
-    report_text = (
-        f"🚨 **تقرير مخالفة في القناة** 🚨\n"
-        f"📢 **القناة:** [{message.chat.title}](https://t.me/{message.chat.username})\n"
-        f"⚠️ **المخالفة:** {violation_type}\n"
-        f"🕒 **الوقت:** {time.strftime('%Y-%m-%d %H:%M:%S')}"
-    )
-
-    try:
-        bot.send_message(report_group_id, report_text, parse_mode="Markdown", disable_web_page_preview=True)
-    except Exception as e:
-        print(f"❌ خطأ في إرسال التقرير: {e}")
 
 
+@bot.channel_post_handler(content_types=['photo', 'video', 'animation', 'sticker', 'text'])
+def handle_channel_media(message):
+    channel_checker.process_channel_media(message)
 
-@bot.channel_post_handler(content_types=['photo'])
-def handle_channel_photo(message):
-    channel_checker.process_channel_photo(message)
+# فحص الرسائل المعدلة عند تعديلها في القناة
+@bot.channel_post_handler(func=lambda message: message.edit_date is not None)
+def handle_edited_channel_media(message):
+    channel_checker.process_edited_channel_media(message)
 
-@bot.channel_post_handler(content_types=['video'])
-def handle_channel_video(message):
-    channel_checker.process_channel_video(message)
 
-@bot.channel_post_handler(content_types=['sticker'])
-def handle_channel_sticker(message):
-    channel_checker.process_channel_sticker(message)
-
-@bot.channel_post_handler(func=lambda message: message.entities and any(entity.type == 'custom_emoji' for entity in message.entities))
-def handle_channel_custom_emoji(message):
-    channel_checker.process_channel_custom_emoji(message)
-    
-    
-    
-@bot.channel_post_handler(content_types=['animation'])
-def handle_channel_gif(message):
-    channel_checker.process_channel_gif(message)
-
-@bot.channel_post_handler(content_types=['video'])
-def handle_channel_video(message):
-    channel_checker.process_channel_video(message)
-
-@bot.channel_post_handler(content_types=['text', 'photo', 'sticker', 'animation', 'video'])
-def handle_all_messages(message):
-    """استقبال جميع الرسائل وفحصها في القنوات"""
-
-    if message.chat.type == "channel":
-        if message.edit_date:  # التحقق إذا كانت الرسالة معدلة
-            channel_checker.process_edited_channel_media(message)
-        else:
-            channel_checker.process_channel_media(message)
 
 
 @bot.message_handler(commands=['gbt'])
