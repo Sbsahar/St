@@ -33,8 +33,10 @@ async def edited_handler(event):
             os.remove(file_path)
             if result == 'nude':
                 try:
-                    bot.delete_message(message.chat_id, message.id)
-                    send_violation_report(message.chat_id, message, "✏️ صورة معدلة غير لائقة")
+                    # حذف الصورة الغير لائقة
+                    await bot.delete_message(message.chat_id, message.id)
+                    # إرسال تقرير بانتهاك
+                    await send_violation_report(message.chat_id, message, "✏️ صورة معدلة غير لائقة")
                     print("✅ تم حذف صورة معدلة غير لائقة")
                 except Exception as e:
                     print(f"❌ خطأ أثناء حذف الصورة المعدلة: {e}")
@@ -51,8 +53,10 @@ async def edited_handler(event):
             os.remove(file_path)
             if any(prob >= 0.5 for prob in nsfw_probs):
                 try:
-                    bot.delete_message(message.chat_id, message.id)
-                    send_violation_report(message.chat_id, message, "✏️ فيديو معدل غير لائق")
+                    # حذف الفيديو الغير لائق
+                    await bot.delete_message(message.chat_id, message.id)
+                    # إرسال تقرير بانتهاك
+                    await send_violation_report(message.chat_id, message, "✏️ فيديو معدل غير لائق")
                     print("✅ تم حذف فيديو معدل غير لائقة")
                 except Exception as e:
                     print(f"❌ خطأ أثناء حذف الفيديو المعدل: {e}")
@@ -69,8 +73,10 @@ async def edited_handler(event):
             os.remove(file_path)
             if any(prob >= 0.5 for prob in nsfw_probs):
                 try:
-                    bot.delete_message(message.chat_id, message.id)
-                    send_violation_report(message.chat_id, message, "✏️ صورة متحركة معدلة غير لائقة")
+                    # حذف الصورة المتحركة الغير لائقة
+                    await bot.delete_message(message.chat_id, message.id)
+                    # إرسال تقرير بانتهاك
+                    await send_violation_report(message.chat_id, message, "✏️ صورة متحركة معدلة غير لائقة")
                     print("✅ تم حذف صورة متحركة معدلة غير لائقة")
                 except Exception as e:
                     print(f"❌ خطأ أثناء حذف الصورة المتحركة المعدلة: {e}")
