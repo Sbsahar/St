@@ -2049,6 +2049,12 @@ def update_violations(user_id, chat_id):
         except Exception as e:
             print(f"❌ خطأ أثناء محاولة تقييد المستخدم: {e}")
 
+
+@bot.edited_message_handler(content_types=['text'])
+def handle_channel_edited_message(message):
+    """استدعاء فحص الرموز التعبيرية المميزة في الرسائل المعدلة داخل القنوات"""
+    process_channel_edited_emoji(message)
+
 @bot.message_handler(content_types=['animation'])
 def handle_gif(message):
     """معالجة ملفات GIF (الصور المتحركة) فقط إذا كان الكاشف مفعلًا"""
