@@ -284,34 +284,17 @@ def process_edited_animation(message):
         print(f"❌ خطأ أثناء فحص الصورة المتحركة المعدلة في القناة: {e}")
 
 
+def process_edited_photo(message):
+    """تمرير الصورة المعدلة للفحص"""
+    process_channel_media(message)
 
-def process_edited_channel_media(message):
-    """فحص جميع الرسائل المعدلة في القناة، بغض النظر عن نوعها"""
+def process_edited_video(message):
+    """تمرير الفيديو المعدل للفحص"""
+    process_channel_media(message)
 
-    # فحص الصور المعدلة
-    if message.content_type == 'photo' and message.photo:
-        process_edited_photo(message)
-
-    # فحص الفيديوهات المعدلة
-    elif message.content_type == 'video' and message.video:
-        process_edited_video(message)
-
-    # فحص الصور المتحركة المعدلة
-    elif message.content_type == 'animation' and message.animation:
-        process_edited_animation(message)
-
-    # فحص الملصقات المعدلة
-    elif message.content_type == 'sticker' and message.sticker:
-        process_channel_media(message)
-
-    # فحص الرموز التعبيرية المعدلة
-    elif message.content_type == 'text' and message.entities:
-        process_channel_media(message)
-
-    # إذا لم تكن تحتوي على ميديا، لا نفعل شيئًا
-    else:
-        print(f"🔄 تم تعديل رسالة في القناة {message.chat.title} ولكنها لا تحتوي على ميديا.")
-
+def process_edited_animation(message):
+    """تمرير الصورة المتحركة المعدلة للفحص"""
+    process_channel_media(message)
 
 def process_edited_channel_media(message):
     """فحص جميع الرسائل المعدلة في القناة، بغض النظر عن نوعها"""
@@ -349,15 +332,3 @@ def process_edited_channel_media(message):
 
     except Exception as e:
         print(f"❌ خطأ أثناء فحص الرسائل المعدلة: {e}")
-
-def process_edited_photo(message):
-    """تمرير الصورة المعدلة للفحص"""
-    process_channel_media(message)
-
-def process_edited_video(message):
-    """تمرير الفيديو المعدل للفحص"""
-    process_channel_media(message)
-
-def process_edited_animation(message):
-    """تمرير الصورة المتحركة المعدلة للفحص"""
-    process_channel_media(message)
