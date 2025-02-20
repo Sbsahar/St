@@ -200,14 +200,27 @@ def process_channel_media(message):
             print(f"❌ خطأ أثناء فحص الرموز التعبيرية في القناة: {e}")
 
 
+
 def process_edited_channel_media(message):
     """فحص جميع الرسائل المعدلة في القناة، بغض النظر عن نوعها"""
 
-    # إذا كانت الرسالة المعدلة تحتوي على ميديا، فحصها بنفس طريقة الرسائل الجديدة
-    if message.content_type in ['photo', 'video', 'animation', 'sticker']:
+    # فحص الصور المعدلة
+    if message.content_type == 'photo':
         process_channel_media(message)
 
-    # فحص الرموز التعبيرية المميزة إذا كانت موجودة
+    # فحص الفيديوهات المعدلة
+    elif message.content_type == 'video':
+        process_channel_media(message)
+
+    # فحص الصور المتحركة المعدلة
+    elif message.content_type == 'animation':
+        process_channel_media(message)
+
+    # فحص الملصقات المعدلة
+    elif message.content_type == 'sticker':
+        process_channel_media(message)
+
+    # فحص الرموز التعبيرية المعدلة
     elif message.content_type == 'text' and message.entities:
         process_channel_media(message)
 
