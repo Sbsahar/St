@@ -29,32 +29,35 @@ def process_channel_photo(message):
     except Exception as e:
         print(f"❌ خطأ في فحص الصورة في القناة: {e}")
 
-def process_channel_video(message):
-    """فحص الفيديوهات في القنوات"""
-    file_id = message.video.file_id
+
+def process_channel_media(message, media_type):
+    """فحص الفيديوهات والصور المتحركة في القنوات"""
+
+    file_id = message.video.file_id if media_type == "فيديو" else message.animation.file_id
     file_info = bot.get_file(file_id)
-    file_link = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
+    file_url = f'https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}'
 
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_file:
-            response = requests.get(file_link)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4" if media_type == "فيديو" else ".gif") as temp_file:
+            response = requests.get(file_url)
             if response.status_code == 200:
-                tmp_file.write(response.content)
-                temp_path = tmp_file.name
-            else:
-                print(f"❌ فشل تحميل الفيديو، رمز الحالة: {response.status_code}")
-                return
+                temp_file.write(response.content)
+                temp_file.close()
 
-        res = check_image_safety(temp_path)
-        os.remove(temp_path)
+                # فحص الفيديو باستخدام OpenNSFW2
+                elapsed_seconds, nsfw_probabilities = n2.predict_video_frames(temp_file.name)
 
-        if res == 'nude':
-            bot.delete_message(message.chat.id, message.message_id)
-            send_violation_report(message.chat.id, message, "🎥 فيديو غير لائق")
+                # إذا كان هناك أي إطار بنسبة NSFW >= 0.5، نحذف الفيديو
+                if any(prob >= 0.5 for prob in nsfw_probabilities):
+                    bot.delete_message(message.chat.id, message.message_id)
+                    send_violation_report(message.chat.id, message, f"🎥 {media_type} غير لائق")
+
+            os.unlink(temp_file.name)
 
     except Exception as e:
-        print(f"❌ خطأ في فحص الفيديو في القناة: {e}")
+        print(f"❌ خطأ في معالجة {media_type} في القناة: {e}")
 
+    
 def process_channel_sticker(message):
     """فحص الملصقات في القنوات"""
     if not message.sticker.thumb:
@@ -281,6 +284,21 @@ def process_edited_channel_media(message):
         process_channel_video(message) 
 
 
+def check_edited_messages():
+    """التأكد من الرسائل المعدلة في القنوات عبر `get_chat_history`"""
+    while True:
+        for chat_id in report_groups.keys():
+            try:
+                messages = bot.get_chat_history(chat_id, limit=5)  # جلب آخر 5 رسائل
+                for message in messages:
+                    if message.edit_date:  # إذا تم تعديل الرسالة
+                        process_edited_channel_media(message)
+
+            except Exception as e:
+                print(f"❌ خطأ أثناء فحص الرسائل المعدلة في القناة {chat_id}: {e}")
+
+        time.sleep(10)  # تحديث كل 10 ثوانٍ
+
 
 
 
@@ -342,6 +360,47 @@ def process_channel_media(message):
 
         except Exception as e:
             print(f"❌ خطأ أثناء فحص الملصق في القناة: {e}")
+
+
+def process_edited_channel_media(message):
+    """فحص الصور، الفيديوهات، الملصقات، والرموز التعبيرية المعدلة في القنوات"""
+
+    if message.content_type == 'photo':
+        process_channel_media(message, "📸 صورة معدلة")
+
+    elif message.content_type == 'sticker':
+        process_channel_media(message, "🎭 ملصق معدل")
+
+    elif message.content_type == 'video':
+        process_channel_media(message, "🎥 فيديو معدل")
+
+    elif message.content_type == 'animation':
+        process_channel_media(message, "🎞 صورة متحركة معدلة")
+
+    elif message.entities:
+        custom_emoji_ids = [entity.custom_emoji_id for entity in message.entities if entity.type == 'custom_emoji']
+        if custom_emoji_ids:
+            sticker_links = get_premium_sticker_info(custom_emoji_ids)
+            for link in sticker_links:
+                try:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                        response = requests.get(link)
+                        if response.status_code == 200:
+                            tmp_file.write(response.content)
+                            temp_path = tmp_file.name
+                        else:
+                            print(f"❌ فشل تحميل الرمز التعبيري، رمز الحالة: {response.status_code}")
+                            continue
+
+                    res = check_image_safety(temp_path)
+                    os.remove(temp_path)
+
+                    if res == 'nude':
+                        bot.delete_message(message.chat.id, message.message_id)
+                        send_violation_report(message.chat.id, message, "✏️ رمز تعبيري معدل غير لائق")
+
+                except Exception as e:
+                    print(f"❌ خطأ أثناء فحص الرموز التعبيرية المعدلة في القناة: {e}")
 
 
 
