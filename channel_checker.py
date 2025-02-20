@@ -1,4 +1,4 @@
-from sahen_v1 import bot, check_image_safety, send_violation_report
+from ste.py import bot, check_image_safety, send_violation_report
 import os
 import tempfile
 import requests
