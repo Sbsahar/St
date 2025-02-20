@@ -1,4 +1,5 @@
 from sh1 import register_download_handlers
+import channel_checker
 from youtube_module import YoutubeModule
 import telebot
 import re
@@ -542,6 +543,11 @@ def remove_banned_word(message):
         save_banned_words()
         bot.reply_to(message, f"✅ تم إزالة الكلمة '{word}' من القائمة المحظورة للمجموعة.")
   # بمجرد اكتشاف أول كلمة ممنوعة نخرج من الحلقة
+@bot.channel_post_handler(func=lambda message: message.entities and any(entity.type == 'custom_emoji' for entity in message.entities))
+def handle_channel_custom_emoji(message):
+    channel_checker.process_channel_custom_emoji(message)
+
+
 
 
 @bot.message_handler(commands=['opengbt'])
