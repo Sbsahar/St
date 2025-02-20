@@ -5,31 +5,24 @@ import requests
 from telethon import TelegramClient, events
 import asyncio
 from ste import bot, check_image_safety, send_violation_report, n2, TOKEN
-    # باقي الكود هنا
 
-# عوّن بيانات Telethon (استبدل API_ID و API_HASH بالقيم الخاصة بك)
-API_ID = 21290600     # ضع API_ID الخاص بك هنا
+# بيانات Telethon
+API_ID = 21290600  # ضع API_ID الخاص بك هنا
 API_HASH = "2bd56b3e7715ec5862d6f856047caa95"  # ضع API_HASH الخاص بك هنا
 
-# إنشاء Telethon client للبوت باستخدام نفس TOKEN
+# تعريف العميل Telethon للبوت
 client = TelegramClient('edited_monitor', API_ID, API_HASH).start(bot_token=TOKEN)
-def run_telethon():
-    loop = asyncio.new_event_loop()  
-    asyncio.set_event_loop(loop)
 
-    client = TelegramClient('edited_monitor', API_ID, API_HASH).start(bot_token=TOKEN)
-
-    # استخدم asyncio.run لتشغيل العميل
-    asyncio.run(client.run_until_disconnected())
+# معالج الرسائل المعدلة في القنوات
 @client.on(events.MessageEdited(chats=lambda e: e.is_channel))
 async def edited_handler(event):
     """
     هذا المعالج يستقبل الرسائل المعدلة في القنوات.
     إذا كانت تحتوي على ميديا (صورة، فيديو، أو متحركة) يقوم بتنزيل الملف وفحصه.
     """
-    message = event.message  # الرسالة المعدلة (يجب أن تكون محدثة)
+    message = event.message  # الرسالة المعدلة
     print(f"🔄 تم تعديل رسالة في القناة {message.chat.title}، ID: {message.id}")
-    
+
     # فحص الصور المعدلة
     if message.photo:
         file_path = await message.download_media()
@@ -60,7 +53,7 @@ async def edited_handler(event):
                 try:
                     bot.delete_message(message.chat_id, message.id)
                     send_violation_report(message.chat_id, message, "✏️ فيديو معدل غير لائق")
-                    print("✅ تم حذف فيديو معدل غير لائق")
+                    print("✅ تم حذف فيديو معدل غير لائقة")
                 except Exception as e:
                     print(f"❌ خطأ أثناء حذف الفيديو المعدل: {e}")
         except Exception as e:
@@ -84,6 +77,10 @@ async def edited_handler(event):
         except Exception as e:
             print(f"❌ خطأ أثناء فحص الصورة المتحركة المعدلة: {e}")
 
-# دالة لتشغيل Telethon في خيط منفصل
-def run_telethon():
-    client.run_until_disconnected()
+# دالة لتشغيل Telethon في حلقة asyncio
+async def run_telethon():
+    await client.run_until_disconnected()
+
+# تشغيل الكود بشكل صحيح في الخيط الرئيسي
+if __name__ == "__main__":
+    asyncio.run(run_telethon())
