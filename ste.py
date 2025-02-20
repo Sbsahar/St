@@ -406,6 +406,38 @@ def is_user_subscribed(user_id):
     except Exception as e:
         print(f"Error checking subscription: {e}")
         return False
+
+def send_violation_report(channel_id, message, violation_type):
+    """إرسال تقرير لمجموعة التقارير الخاصة بالقناة"""
+    report_group_id = report_groups.get(str(channel_id))
+    if not report_group_id:
+        print(f"❌ لم يتم العثور على مجموعة تقارير للقناة: {channel_id}")
+        return
+
+    # إصلاح عنوان القناة إذا لم يكن لديه username
+    chat_title = message.chat.title if message.chat.title else "Unknown Channel"
+    chat_link = f"https://t.me/{message.chat.username}" if message.chat.username else "لا يوجد رابط"
+
+    report_text = (
+        f"🚨 **تقرير مخالفة في القناة** 🚨\n"
+        f"📢 **القناة:** {chat_title}\n"
+        f"🔗 **الرابط:** {chat_link}\n"
+        f"⚠️ **المخالفة:** {violation_type}\n"
+        f"🕒 **الوقت:** {time.strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+
+    try:
+        bot.send_message(
+            report_group_id,
+            report_text,
+            parse_mode="Markdown",
+            disable_web_page_preview=True
+        )
+        print(f"✅ تم إرسال التقرير إلى المجموعة {report_group_id}")
+    except Exception as e:
+        print(f"❌ خطأ في إرسال التقرير: {str(e)}")
+
+
 @bot.chat_member_handler()
 def welcome_developer(update: ChatMemberUpdated):
     """ترحب بالمطور عند انضمامه إلى أي مجموعة يكون فيها البوت"""
