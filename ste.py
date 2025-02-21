@@ -2433,12 +2433,12 @@ def send_auto_reply(target_msg, original_message=None):
 
 
             
-
+register_channel_handlers(bot)
 
 load_banned_words()         
 load_detection_status()          
 reset_daily_reports()  
-register_channel_handlers(bot)
+
 
 if __name__ == '__main__':
     bot.polling(none_stop=True)
