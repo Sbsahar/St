@@ -2301,7 +2301,7 @@ def send_animation(message):
     bot.send_animation(message.chat.id, animation_file_id, caption=caption, parse_mode="HTML", reply_markup=keyboard)
 
 
-register_channel_handlers(bot)
+
 
 
 
@@ -2432,7 +2432,7 @@ def send_auto_reply(target_msg, original_message=None):
     except Exception as e:
         print(f"Error: {e}")
 
-
+register_channel_handlers(bot)
 
 
             
