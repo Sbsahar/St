@@ -11,12 +11,14 @@ from yt_dlp import YoutubeDL
 import tempfile
 import tempfile
 import os
+import sys
 import random
 import threading
 import requests
 from telebot import types
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import time
+import subprocess
 import json
 from telebot.types import BotCommand
 import logging
@@ -27,7 +29,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()]
 )
-TOKEN = '7588670003:AAEJSTkUqMYiNdjL17UsoM5O4a87YPiHhsc'
+TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
 YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
 BOT_USERNAME = '@SY_SBbot'
 CHANNEL_URL = 'https://t.me/SYR_SB'
@@ -594,6 +596,51 @@ def set_report_group(message):
     report_groups[str(channel_id)] = message.chat.id
     save_report_groups()  # تأكد من أن دالة الحفظ هذه تعمل على حفظ report_groups بشكل دائم
     bot.reply_to(message, f"✅ تم ربط قناة {channel.title} بمجموعة التقارير بنجاح.")
+
+@bot.message_handler(commands=['rest'])
+def restart_bot(message):
+    """إعادة تشغيل البوت مع التأثيرات الجمالية"""
+    if str(message.from_user.id) != str(DEVELOPER_CHAT_ID):  
+        bot.reply_to(message, "❌ هذا الأمر مخصص للمطور فقط.")
+        return
+    
+    progress_messages = [
+        "■ 10%", "■■ 20%", "■■■ 30%", "■■■■ 40%", 
+        "■■■■■ 50%", "■■■■■■ 60%", "■■■■■■■ 70%", 
+        "■■■■■■■■ 80%", "■■■■■■■■■ 90%", "■■■■■■■■■■ 100%"
+    ]
+
+    msg = bot.send_message(
+        message.chat.id, 
+        "🚀 <b>جاري تحديث البوت عزيزي المطور...</b> ⏳\n",
+        parse_mode="HTML"
+    )
+
+    for progress in progress_messages:
+        time.sleep(0.5)  # تأخير بسيط ليظهر التأثير
+        bot.edit_message_text(
+            f"🚀 <b>جاري تحديث البوت عزيزي المطور...</b> ⏳\n{progress}", 
+            message.chat.id, 
+            msg.message_id, 
+            parse_mode="HTML"
+        )
+
+    time.sleep(1)
+    bot.edit_message_text(
+        "⎙ <b>جاري إعادة تشغيل البوت وجلب التحديثات...</b> ✨", 
+        message.chat.id, 
+        msg.message_id, 
+        parse_mode="HTML"
+    )
+
+    time.sleep(2)  # تأخير بسيط قبل إعادة التشغيل
+
+    # سحب التحديثات من GitHub
+    subprocess.run(["git", "pull", "origin", "main"])
+
+    # إعادة تشغيل البوت بنفس العملية
+    os.execv(sys.executable, ['python3', 'ste.py'])
+
 
 
 @bot.message_handler(commands=['gbt'])
