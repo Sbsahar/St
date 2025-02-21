@@ -1,4 +1,5 @@
 from sh1 import register_download_handlers  
+from admin_utils import is_user_admin
 import channel_checker
 from channel_module import register_channel_handlers
 import threading
