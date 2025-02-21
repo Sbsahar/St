@@ -2370,6 +2370,9 @@ def save_reply(message):
         bot.reply_to(message, f"✅ تم ربط الرد بــ `{keyword}`", parse_mode="Markdown")
     else:
         bot.reply_to(message, "❌ نوع الوسائط غير مدعوم")
+
+
+register_channel_handlers(bot)
 @bot.message_handler(func=lambda message: message.content_type == 'text')
 def handle_messages(message):
     if message.chat.type == "private":
@@ -2432,7 +2435,7 @@ def send_auto_reply(target_msg, original_message=None):
     except Exception as e:
         print(f"Error: {e}")
 
-register_channel_handlers(bot)
+
 
 
             
