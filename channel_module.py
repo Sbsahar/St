@@ -1,7 +1,7 @@
 import json
 import os
 from telebot import TeleBot, types
-register_channel_handlers(bot)
+
 # ملف لتخزين إعدادات القنوات لكل مجموعة (دائم)
 DATA_FILE = 'group_channels.json'
 
@@ -75,6 +75,9 @@ def check_subscription(message, bot):
         return
     if str(chat_id) not in group_channels:
         return
+    if message.text and message.text.startswith("/"):
+        return  # تجنب التداخل مع أوامر البوت الأساسي
+    
     channel_username = group_channels[str(chat_id)]
     user_id = message.from_user.id
     if is_subscribed(bot, channel_username, user_id):
@@ -96,9 +99,7 @@ def check_subscription(message, bot):
     sent = bot.send_message(chat_id, warning_text, reply_markup=markup, parse_mode="HTML")
     last_warning[key] = sent.message_id
 
-# ✅ دالة تسجيل المعالجات بشكل صحيح
 def register_channel_handlers(bot: TeleBot):
-    # استخدام message_handler بشكل صحيح من TeleBot
     @bot.message_handler(commands=['setchannel'])
     def handle_set_channel(message):
         set_channel(message, bot)
@@ -107,6 +108,8 @@ def register_channel_handlers(bot: TeleBot):
     def handle_stop_set_channel(message):
         stop_set_channel(message, bot)
 
-    @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'video', 'document', 'sticker'])
+    @bot.message_handler(func=lambda message: message.text and not message.text.startswith("/"),
+                         content_types=['text', 'photo', 'video', 'document', 'sticker'])
     def handle_check_subscription(message):
         check_subscription(message, bot)
+        
