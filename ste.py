@@ -108,10 +108,13 @@ def load_report_groups():
             report_groups = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         report_groups = {}
-async def run_telethon():
-    await client.run_until_disconnected()
         
-
+def is_user_admin(chat_id, user_id):
+    try:
+        chat_member = bot.get_chat_member(chat_id, user_id)
+        return chat_member.status in ["administrator", "creator"]
+    except Exception:
+        return False
 
 
 # حفظ إعدادات التقارير
