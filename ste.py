@@ -425,11 +425,11 @@ def send_violation_report(channel_id, message, violation_type):
     chat_link = f"https://t.me/{message.chat.username}" if message.chat.username else "لا يوجد رابط"
 
     report_text = (
-        f"🚨 **تقرير مخالفة في القناة** 🚨\n"
-        f"📢 **القناة:** {chat_title}\n"
-        f"🔗 **الرابط:** {chat_link}\n"
-        f"⚠️ **المخالفة:** {violation_type}\n"
-        f"🕒 **الوقت:** {time.strftime('%Y-%m-%d %H:%M:%S')}"
+        f"🚨 *تقرير مخالفة في القناة* 🚨\n"
+        f"📢 *القناة* {chat_title}\n"
+        f"🔗 *الرابط* {chat_link}\n"
+        f"⚠️ *المخالفة* {violation_type}\n"
+        f"🕒 *الوقت* {time.strftime('%Y-%m-%d %H:%M:%S')}"
     )
 
     try:
