@@ -63,7 +63,6 @@ report_groups = {}
 # القاموس العام لتخزين الكلمات لكل مجموعة بصيغة {"group_id": ["كلمة1", "كلمة2", ...]}
 banned_words = {}
 register_channel_handlers(bot)
-register_download_handlers(bot, is_user_admin)
 
 # قائمة الصلاحيات الافتراضية مع أسمائها بالعربية
 PERMISSION_NAMES = {
