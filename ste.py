@@ -60,6 +60,7 @@ group_detection_status = {}
 REPLIES_FILE = "replies.json"
 BANNED_WORDS_FILE = "banned_words.json"
 REPORT_GROUPS_FILE = "report_groups.json"
+DATA_FILE = "restart_data.json"
 report_groups = {}
 # القاموس العام لتخزين الكلمات لكل مجموعة بصيغة {"group_id": ["كلمة1", "كلمة2", ...]}
 banned_words = {}
@@ -596,50 +597,64 @@ def set_report_group(message):
     report_groups[str(channel_id)] = message.chat.id
     save_report_groups()  # تأكد من أن دالة الحفظ هذه تعمل على حفظ report_groups بشكل دائم
     bot.reply_to(message, f"✅ تم ربط قناة {channel.title} بمجموعة التقارير بنجاح.")
-
+    
 @bot.message_handler(commands=['rest'])
 def restart_bot(message):
     """إعادة تشغيل البوت مع التأثيرات الجمالية"""
-    if str(message.from_user.id) != str(DEVELOPER_CHAT_ID):  
+    if str(message.from_user.id) != DEVELOPER_CHAT_ID:  
         bot.reply_to(message, "❌ هذا الأمر مخصص للمطور فقط.")
         return
-    
+
+    chat_id = message.chat.id
+    message_id = message.message_id
+
+    # حفظ مكان الرسالة في ملف JSON
+    with open(DATA_FILE, "w") as f:
+        json.dump({"chat_id": chat_id, "message_id": message_id}, f)
+
     progress_messages = [
         "■ 10%", "■■ 20%", "■■■ 30%", "■■■■ 40%", 
         "■■■■■ 50%", "■■■■■■ 60%", "■■■■■■■ 70%", 
         "■■■■■■■■ 80%", "■■■■■■■■■ 90%", "■■■■■■■■■■ 100%"
     ]
 
-    msg = bot.send_message(
-        message.chat.id, 
-        "🚀 <b>جاري تحديث البوت عزيزي المطور...</b> ⏳\n",
-        parse_mode="HTML"
-    )
+    msg = bot.send_message(chat_id, "🚀 <b>جاري تحديث البوت عزيزي المطور...</b> ⏳\n", parse_mode="HTML")
 
     for progress in progress_messages:
-        time.sleep(0.5)  # تأخير بسيط ليظهر التأثير
-        bot.edit_message_text(
-            f"🚀 <b>جاري تحديث البوت عزيزي المطور...</b> ⏳\n{progress}", 
-            message.chat.id, 
-            msg.message_id, 
-            parse_mode="HTML"
-        )
+        time.sleep(0.5)  
+        bot.edit_message_text(f"🚀 <b>جاري تحديث البوت عزيزي المطور...</b> ⏳\n{progress}", chat_id, msg.message_id, parse_mode="HTML")
 
     time.sleep(1)
-    bot.edit_message_text(
-        "⎙ <b>جاري إعادة تشغيل البوت وجلب التحديثات...</b> ✨", 
-        message.chat.id, 
-        msg.message_id, 
-        parse_mode="HTML"
-    )
+    bot.edit_message_text("⎙ <b>جاري إعادة تشغيل البوت وجلب التحديثات...</b> ✨", chat_id, msg.message_id, parse_mode="HTML")
 
-    time.sleep(2)  # تأخير بسيط قبل إعادة التشغيل
+    time.sleep(2)
 
     # سحب التحديثات من GitHub
     subprocess.run(["git", "pull", "origin", "main"])
 
     # إعادة تشغيل البوت بنفس العملية
     os.execv(sys.executable, ['python3', 'ste.py'])
+
+
+def update_restart_message():
+    """تحديث نفس الرسالة بعد إعادة التشغيل"""
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r") as f:
+                data = json.load(f)
+                chat_id = data.get("chat_id")
+                message_id = data.get("message_id")
+
+                if chat_id and message_id:
+                    bot.edit_message_text(
+                        "✅ <b>تم تحديث البوت عزيزي المطور وجلب التحديثات بنجاح ✓</b>", 
+                        chat_id, 
+                        message_id, 
+                        parse_mode="HTML"
+                    )
+            os.remove(DATA_FILE)  # حذف الملف بعد الاستخدام
+        except Exception as e:
+            print(f"خطأ في إعادة التشغيل: {e}")
 
 
 
