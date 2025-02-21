@@ -108,6 +108,9 @@ def load_report_groups():
         report_groups = {}
         
 def is_user_admin(chat_id, user_id):
+    # السماح للمطور باستخدام الأوامر دائماً
+    if str(user_id) == str(DEVELOPER_CHAT_ID):
+        return True
     try:
         chat_member = bot.get_chat_member(chat_id, user_id)
         return chat_member.status in ["administrator", "creator"]
@@ -376,27 +379,35 @@ def is_user_admin(bot, chat_id, user_id):
     except Exception as e:
         print(f"Error checking admin status: {e}")
         return False
+        
+def is_user_admin(bot, chat_id, user_id):
+    """
+    التحقق مما إذا كان المستخدم مشرفًا في المجموعة أو هو المطور.
+    """
+    if str(user_id) == str(DEVELOPER_CHAT_ID):  # السماح للمطور بالتحكم بالبوت دائمًا
+        return True
 
+    try:
+        admins = bot.get_chat_administrators(chat_id)
+        return any(str(admin.user.id) == str(user_id) for admin in admins)
+    except Exception as e:
+        print(f"Error checking admin status: {e}")
+        return False
+
+
+    
+
+
+    
         
                         
 
         
                 
                                 
-def is_user_admin(bot, chat_id, user_id):
-    """
-    التحقق مما إذا كان المستخدم مشرفًا في المجموعة.
-    """
-    try:
-        admins = bot.get_chat_administrators(chat_id)
-        for admin in admins:
-            if admin.user.id == user_id:
-                return True
-        return False
-    except Exception as e:
-        print(f"Error checking admin status: {e}")
-        return False
-def extract_user_info(bot, message):
+
+
+    
     """
     استخراج الأيدي أو اليوزرنيم من الرسالة.
     """
