@@ -96,11 +96,10 @@ def check_subscription(message, bot):
     sent = bot.send_message(chat_id, warning_text, reply_markup=markup, parse_mode="HTML")
     last_warning[key] = sent.message_id
 
+# ✅ دالة تسجيل المعالجات بشكل صحيح
 def register_channel_handlers(bot: TeleBot):
-    def register_channel_handlers(bot):
     bot.add_message_handler(types.MessageHandler(lambda message: set_channel(message, bot), commands=['setchannel']))
     bot.add_message_handler(types.MessageHandler(lambda message: stop_set_channel(message, bot), commands=['stopsetchannel']))
     bot.add_message_handler(types.MessageHandler(lambda message: check_subscription(message, bot), 
                                                  func=lambda message: True, 
                                                  content_types=['text', 'photo', 'video', 'document', 'sticker']))
-    
