@@ -18,7 +18,6 @@ def register_download_handlers(bot, is_user_admin):
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        # التحقق مما إذا كان المستخدم مشرفًا
         if not is_user_admin(chat_id, user_id):
             bot.send_message(chat_id, "❌ لاتلعب التحميل فقط للمشرفين.")
             return
@@ -30,31 +29,26 @@ def register_download_handlers(bot, is_user_admin):
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        # التحقق من صلاحيات المشرف
         if not is_user_admin(chat_id, user_id):
             bot.send_message(chat_id, "❌ هذا الأمر متاح فقط للمشرفين.")
             return
 
-        url = message.text.strip()  # إزالة أي مسافات غير ضرورية
-        if url.startswith("/"):  # إذا بدأ الرابط بـ "/"
-            url = url[1:].strip()  # إزالة الـ "/" من البداية إذا كانت موجودة
-
-        # تحقق من أن الرابط يبدأ بـ http
+        url = message.text.strip()
         if not url.startswith("http"):
             bot.send_message(chat_id, "❌ الرابط مو شغال تأكد من الرابط .")
             return
 
-        unique_id = str(uuid.uuid4())[:8]  # إنشاء معرف فريد
-        url_store[unique_id] = url  # تخزين الرابط
+        unique_id = str(uuid.uuid4())[:8]
+        url_store[unique_id] = url
 
-        markup = telebot.types.InlineKeyboardMarkup(row_width=1)  # تغيير العرض ليكون عمودي
+        markup = telebot.types.InlineKeyboardMarkup(row_width=1)
         video_button = telebot.types.InlineKeyboardButton("▶ تحـميل فيديـو", callback_data=f"video_{unique_id}")
         audio_button = telebot.types.InlineKeyboardButton("🎧 تحـميل مقـطع صـوتي", callback_data=f"audio_{unique_id}")
         markup.add(video_button, audio_button)
 
         message_sent = bot.send_message(chat_id, "⤵ اخـتر نـوع التحـميل:", reply_markup=markup)
-        time.sleep(30) 
-        bot.delete_message(chat_id, message_sent.message_id) 
+        time.sleep(30)
+        bot.delete_message(chat_id, message_sent.message_id)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("video_") or call.data.startswith("audio_"))
     def handle_download(call):
@@ -66,46 +60,36 @@ def register_download_handlers(bot, is_user_admin):
             bot.send_message(chat_id, "❌ الرابط مالقيته أو انتهت صلاحيته.")
             return
 
-        url = url_store.pop(unique_id)  # استرجاع الرابط وحذفه من التخزين
+        url = url_store.pop(unique_id)
 
-        # ارسال رسالة بداية التحميل مع التقدم التدريجي
-        progress_msg = bot.send_message(chat_id, "<b>⏳ جاري التحميل، انتظر قليلاً...</b>\n■□□□□ 10%", parse_mode="HTML")
-        
-        # التحديث التدريجي للرسالة كل ثانيتين
+        progress_msg = bot.send_message(chat_id, "<b>⏳ جاري التحميل، انتظر قليلاً...</b>", parse_mode="HTML")
+
         for i in range(1, 6):
             time.sleep(2)
             progress = "■" * i + "□" * (5 - i)
             bot.edit_message_text(f"<b>⇄ جـاري التحمـيل أنـطر شـوي...</b>\n{progress} {i * 20}%", chat_id, progress_msg.message_id, parse_mode="HTML")
 
-        # تحديث الرسالة إلى "➳ 𝑳𝒐𝒂𝒅𝒊𝒏𝒈.." قبل تحميل الملف
         bot.edit_message_text("<b>➳ 𝑳𝒐𝒂𝒅𝒊𝒏𝒈..</b>", chat_id, progress_msg.message_id, parse_mode="HTML")
 
-        # تحميل الملف
         file_path = download_media(url, format_type)
         if file_path and os.path.exists(file_path):
             with open(file_path, "rb") as media:
-                caption = "<b>تـم التحميل بواسطـة @SY_SBbot</b>\n"
-                caption += f"<b>تـم التحميل مـن ↩</b><a href='{url}'>الرابط هنا</a>"
-
+                caption = f"<b>تـم التحميل بواسطـة @SY_SBbot</b>\n<b>تـم التحميل مـن ↩</b><a href='{url}'>الرابط هنا</a>"
                 if format_type == "video":
                     bot.send_video(chat_id, media, caption=caption, parse_mode="HTML")
                 else:
                     bot.send_audio(chat_id, media, caption=caption, parse_mode="HTML")
-
-            os.remove(file_path)  # حذف الملف بعد الإرسال
+            os.remove(file_path)
             bot.send_message(chat_id, "<b> تـم التحـميل بنجاح</b> ♡𓏧♡", parse_mode="HTML")
         else:
             bot.send_message(chat_id, "❌ حدث خطأ أثناء التحميل.")
-
-        # حذف رسالة "➳ 𝑳𝒐𝒂𝒅𝒊𝒏𝒈.."
         bot.delete_message(chat_id, progress_msg.message_id)
-
+    
     print("✅ تم تسجيل أوامر التحميل بنجاح.")
 
 def download_media(url, format_type):
     output_dir = "downloads"
     os.makedirs(output_dir, exist_ok=True)
-
     output_path = os.path.join(output_dir, "%(title)s.%(ext)s")
     
     ydl_opts = {
@@ -115,7 +99,7 @@ def download_media(url, format_type):
         "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}] if format_type == "audio" else [],
         "cookiefile": cookies_file,
     }
-
+    
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
