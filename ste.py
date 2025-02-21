@@ -363,20 +363,23 @@ def handle_violation(message, content_type):
         print(f"خطأ في معالجة المخالفة: {e}")           
             
 
-
-        
-                        
-def is_admin(chat_id, user_id):
-    """التحقق مما إذا كان المستخدم مشرفًا أو المطور"""
-    if is_developer(user_id):  
-        return True  # السماح للمطور باستخدام جميع الأوامر دائمًا
+def is_user_admin(bot, chat_id, user_id):
+    """
+    التحقق مما إذا كان المستخدم مشرفًا في المجموعة أو هو المطور.
+    """
+    if str(user_id) == str(DEVELOPER_CHAT_ID):  # السماح للمطور بالتحكم بالبوت دائمًا
+        return True
 
     try:
         admins = bot.get_chat_administrators(chat_id)
-        return any(admin.user.id == user_id for admin in admins)
+        return any(str(admin.user.id) == str(user_id) for admin in admins)
     except Exception as e:
         print(f"Error checking admin status: {e}")
         return False
+
+        
+                        
+
         
                 
                                 
