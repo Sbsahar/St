@@ -2439,7 +2439,7 @@ load_banned_words()
 load_detection_status()          
 reset_daily_reports()  
 
-
+register_channel_handlers(bot)
 
 if __name__ == '__main__':
     bot.polling(none_stop=True)
