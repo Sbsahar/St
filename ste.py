@@ -59,7 +59,6 @@ REPLIES_FILE = "replies.json"
 BANNED_WORDS_FILE = "banned_words.json"
 REPORT_GROUPS_FILE = "report_groups.json"
 report_groups = {}
-register_channel_handlers(bot)
 # القاموس العام لتخزين الكلمات لكل مجموعة بصيغة {"group_id": ["كلمة1", "كلمة2", ...]}
 banned_words = {}
 # قائمة الصلاحيات الافتراضية مع أسمائها بالعربية
