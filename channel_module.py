@@ -80,28 +80,35 @@ def check_subscription(message, bot):
         return
     if message.text and message.text.startswith("/"):
         return  # تجنب التداخل مع أوامر البوت الأساسي
-    
+
     channel_username = group_channels[str(chat_id)]
     user = message.from_user
     user_id = user.id
+
     if is_subscribed(bot, channel_username, user_id):
         return
+
     try:
-        bot.delete_message(chat_id, message.message_id)
+        bot.delete_message(chat_id, message.message_id)  # حذف أي رسالة مرسلة
     except Exception:
         pass
+
     markup = types.InlineKeyboardMarkup()
     btn = types.InlineKeyboardButton("☚أضـغط للأشـتراك☛", url=f"https://t.me/{channel_username.lstrip('@')}")
     markup.add(btn)
+
     warning_text = f"<b>مرحباً {format_mention(user)}،  لا يمكـنك الكـتابة وإرسـال الرسـائل ✉ هـنا إذا لـم تـكن مشـتركاً فـي قنـاة المـجمـوعة.</b>"
+
     key = f"{chat_id}_{user_id}"
     if key in last_warning:
         try:
             bot.delete_message(chat_id, last_warning[key])
         except Exception:
             pass
+
     sent = bot.send_message(chat_id, warning_text, reply_markup=markup, parse_mode="HTML")
     last_warning[key] = sent.message_id
+
 
 def register_channel_handlers(bot: TeleBot):
     @bot.message_handler(commands=['setchannel'])
@@ -117,9 +124,9 @@ def register_channel_handlers(bot: TeleBot):
             message.chat.type in ['group', 'supergroup'] and 
             str(message.chat.id) in group_channels and 
             not is_subscribed(bot, group_channels[str(message.chat.id)], message.from_user.id) and 
-            not message.text.startswith("/")  # لا يعترض أوامر البوت الأخرى
+            not (message.text and message.text.startswith("/"))  # لا يعترض أوامر البوت الأخرى
         ),
-        content_types=['text', 'photo', 'video', 'document', 'sticker']
+        content_types=['text', 'photo', 'video', 'document', 'sticker', 'animation', 'audio', 'voice', 'contact', 'location']
     )
     def handle_check_subscription(message):
         check_subscription(message, bot)
