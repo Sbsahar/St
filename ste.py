@@ -267,10 +267,13 @@ def check_image_safety(image_path):
         return 'error'
             
 def is_user_admin(chat_id, user_id):
-    """التحقق من صلاحية المشرف"""
+    """التحقق مما إذا كان المستخدم مشرفًا أو المطور"""
+    if str(user_id) == str(DEVELOPER_CHAT_ID):  
+        return True  # السماح للمطور باستخدام جميع الأوامر دائمًا
+
     try:
         admins = bot.get_chat_administrators(chat_id)
-        return any(admin.user.id == user_id for admin in admins)
+        return any(str(admin.user.id) == str(user_id) for admin in admins)
     except Exception as e:
         print(f"خطأ في التحقق من الصلاحيات: {e}")
         return False
@@ -474,7 +477,7 @@ def send_violation_report(channel_id, message, violation_type):
 @bot.chat_member_handler()
 def welcome_developer(update: ChatMemberUpdated):
     """ترحب بالمطور عند انضمامه إلى أي مجموعة يكون فيها البوت"""
-    if update.new_chat_member.user.id == DEVELOPER_CHAT_ID and update.new_chat_member.status in ["member", "administrator", "creator"]:
+    if str(update.new_chat_member.user.id) == str(DEVELOPER_CHAT_ID) and update.new_chat_member.status in ["member", "administrator", "creator"]:
         bot.send_message(
             update.chat.id,
             f"⚡ <b>انضم مطور البوت</b> <a href='tg://user?id={DEVELOPER_CHAT_ID}'>@SB_SAHAR</a> <b>إلى المجموعة</b> ⚡\n\n"
