@@ -232,7 +232,7 @@ def get_all_members(chat_id):
     
 def is_user_admin(chat_id, user_id):
     """التحقق مما إذا كان المستخدم مشرفًا أو المطور"""
-    if is_developer(user_id):  
+    if user_id == DEVELOPER_CHAT_ID  
         return True  # السماح للمطور باستخدام جميع الأوامر دائمًا
 
     try:
