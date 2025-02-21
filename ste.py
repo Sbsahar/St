@@ -570,6 +570,31 @@ def handle_edited_channel_message(message):
     channel_checker.process_edited_channel_media(message)
 
 
+@bot.message_handler(commands=['setreportgroup'])
+def set_report_group(message):
+    # تأكد من أن الأمر يُستخدم داخل مجموعة وليس في الخاص
+    if message.chat.type == "private":
+        bot.reply_to(message, "❌ هذا الأمر مخصص للمجموعات فقط.")
+        return
+
+    # تحقق من أن المستخدم مشرف في المجموعة
+    if not is_user_admin(bot, message.chat.id, message.from_user.id):
+        bot.reply_to(message, "❌ هذا الأمر متاح للمشرفين فقط.")
+        return
+
+    # يجب أن يكون الأمر كرد على منشور مبعوث من قناة
+    if not message.reply_to_message or not message.reply_to_message.forward_from_chat:
+        bot.reply_to(message, "❌ الرجاء الرد على منشور مبعوث من قناة لاستخدام هذا الأمر.")
+        return
+
+    channel = message.reply_to_message.forward_from_chat
+    channel_id = channel.id
+
+    # ربط القناة بالمجموعة الحالية عن طريق تحديث قاموس report_groups
+    report_groups[str(channel_id)] = message.chat.id
+    save_report_groups()  # تأكد من أن دالة الحفظ هذه تعمل على حفظ report_groups بشكل دائم
+    bot.reply_to(message, f"✅ تم ربط قناة {channel.title} بمجموعة التقارير بنجاح.")
+
 
 @bot.message_handler(commands=['gbt'])
 def handle_gbt_command(message):
