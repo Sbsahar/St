@@ -2433,7 +2433,7 @@ def send_auto_reply(target_msg, original_message=None):
 
 
             
-register_channel_handlers(bot)
+
 
 load_banned_words()         
 load_detection_status()          
