@@ -1032,11 +1032,13 @@ def unban_user(message):
 
     except Exception as e:
         bot.reply_to(message, f"❌ <b>حدث خطأ أثناء محاولة إلغاء حظر العضو:</b> {e}", parse_mode="HTML")
+
+
 @bot.message_handler(commands=['mute'])
 def mute_user(message):
     chat_id = message.chat.id
     user_id = message.from_user.id
-    
+
     # التحقق من أن المستخدم مشرف
     if not is_user_admin(bot, chat_id, user_id):
         bot.reply_to(
@@ -1045,7 +1047,7 @@ def mute_user(message):
             parse_mode="HTML"
         )
         return
-    
+
     # استخراج معلومات العضو المستهدف
     target_id, target_username = extract_user_info(bot, message)
     if not target_id:
@@ -1059,13 +1061,13 @@ def mute_user(message):
         )
         return
 
-    # منع كتم المطور
-    if is_developer(target_id):
-        bot.reply_to(message, "❌ <b>لا يمكنك كتم المطور!</b>", parse_mode="HTML")
+    # منع كتم المطور والبوت نفسه
+    if is_developer(target_id) or target_id == bot.get_me().id:
+        bot.reply_to(message, "❌ <b>لا يمكن تقييد هذا المستخدم!</b>", parse_mode="HTML")
         return
 
     command_parts = message.text.split()
-    
+
     # تحديد مدة الكتم إن وجدت
     if message.reply_to_message:
         if len(command_parts) > 1:
@@ -1093,8 +1095,8 @@ def mute_user(message):
                 return
         else:
             mute_duration = None
-    
-    # تطبيق الكتم مع التعامل مع الاستثناء في حال محاولة تقييد مسؤول الدردشة
+
+    # تطبيق الكتم مع التعامل مع الاستثناءات
     if mute_duration:
         until_date = int(time.time()) + mute_duration * 60
         try:
@@ -1105,10 +1107,11 @@ def mute_user(message):
                 can_send_messages=False
             )
         except telebot.apihelper.ApiTelegramException as e:
-            if "user is an administrator" in str(e):
-                logging.error("محاولة تقييد مسؤول الدردشة، تم تجاهل الخطأ.")
+            # إذا كان الخطأ بسبب محاولة تقييد مسؤول أو البوت نفسه، نقوم بتسجيل الخطأ وتجاهله
+            if "user is an administrator" in str(e) or "can't restrict self" in str(e):
+                logging.error("محاولة تقييد غير صالحة، تم تجاهل الخطأ.")
             else:
-                raise
+                logging.error(f"خطأ أثناء تقييد العضو: {e}")
         mute_message = (
             f"🕛 <b>تـم تقـييـد الحـلـو</b> <a href='tg://user?id={target_id}'>{target_username or 'المستخدم'}</a> "
             f"<b>المدة</b>: {mute_duration} دقيقة\n"
@@ -1123,15 +1126,16 @@ def mute_user(message):
                 can_send_messages=False
             )
         except telebot.apihelper.ApiTelegramException as e:
-            if "user is an administrator" in str(e):
-                logging.error("محاولة تقييد مسؤول الدردشة، تم تجاهل الخطأ.")
+            if "user is an administrator" in str(e) or "can't restrict self" in str(e):
+                logging.error("محاولة تقييد غير صالحة، تم تجاهل الخطأ.")
             else:
-                raise
+                logging.error(f"خطأ أثناء تقييد العضو: {e}")
         mute_message = (
             f"🔇 <b>🛂 تـم حطـيته وضـع طـيـران</b> <a href='tg://user?id={target_id}'>{target_username or 'المستخدم'}</a> "
             f"<b>بشكل دائـم</b>"
         )
         bot.reply_to(message, mute_message, parse_mode="HTML")
+
 
 @bot.message_handler(commands=['unmute'])
 def unmute_user(message):
@@ -2662,5 +2666,11 @@ if __name__ == "__main__":
     # تشغيل وظيفة الإرسال في مسار منفصل
     threading.Thread(target=send_restart_message).start()
 
-    # تشغيل البوت
-    bot.polling()
+    while True:
+        try:
+            # تشغيل البوت
+            bot.polling(none_stop=True)
+        except Exception as e:
+            logging.error(f"❌ حدث خطأ في البوت: {e}")
+            time.sleep(5)
+
