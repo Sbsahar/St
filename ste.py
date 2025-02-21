@@ -1629,8 +1629,6 @@ def handle_manual_ban(message):
         user = message.left_chat_member
         event = f"تم طرد العضو يدويًا: @{user.username if user.username else user.id}"
         daily_reports[chat_id]["manual_actions"].append(event)        
-
-
 @bot.message_handler(commands=['info'])
 def get_user_info(message):
     chat_id = message.chat.id
@@ -1649,14 +1647,13 @@ def get_user_info(message):
         return
 
     try:
-        target_id = int(target_id)
+        target_id = str(target_id)  # التأكد أن الآيدي يكون نصًا لمقارنته مع DEVELOPER_CHAT_ID
         print(f"target_id: {target_id}, DEVELOPER_CHAT_ID: {DEVELOPER_CHAT_ID}")
 
         # إذا كان المستخدم هو المطور
-        if target_id == DEVELOPER_CHAT_ID:
+        if target_id == str(DEVELOPER_CHAT_ID):
             role = "👑 <b>المطور الأساسي</b>"
             header = "👑 <b>معلومات المطور:</b>\n"
-            # محاولة استخدام الرسالة المردود عليها إذا كانت موجودة
             if message.reply_to_message:
                 user = message.reply_to_message.from_user
             else:
@@ -1664,12 +1661,12 @@ def get_user_info(message):
         else:
             header = "📌 <b>معلومات العضو</b>\n"
             if chat_id < 0:  # داخل مجموعة
-                chat_member = bot.get_chat_member(chat_id, target_id)
+                chat_member = bot.get_chat_member(chat_id, int(target_id))  # تحويل الآيدي إلى رقم عند الحاجة
                 user = chat_member.user
                 status = chat_member.status
                 role = "🔰 <b>مشرف</b>" if status in ["creator", "administrator"] else "👤 <b>عضو</b>"
             else:
-                user = bot.get_chat(target_id)
+                user = bot.get_chat(int(target_id))
                 role = "👤 <b>عضو</b>"
 
         is_premium = "💎 <b>بريميوم</b>" if getattr(user, "is_premium", False) else "👤 <b>عادي</b>"
@@ -1696,54 +1693,31 @@ def get_user_info(message):
         )
 
 def extract_user_info(bot, message):
-    # إذا تم الرد على رسالة
+    """
+    استخراج الأيدي أو اليوزرنيم من الرسالة.
+    """
     if message.reply_to_message:
-        user = message.reply_to_message.from_user
-        return user.id, user.username
-    # إذا تم استخدام الآيدي مع الأمر
+        return str(message.reply_to_message.from_user.id), message.reply_to_message.from_user.username
     elif len(message.text.split()) > 1:
-        target_id = message.text.split()[1]
-        return target_id, None
+        target = message.text.split()[1]
+        if target.startswith("@"): 
+            try:
+                user_info = bot.get_chat(target)
+                return str(user_info.id), user_info.username 
+            except Exception as e:
+                print(f"Error getting user info: {e}")
+                return None, None
+        else: 
+            try:
+                user_id = str(int(target))  # تحويل إلى نص بعد التأكد من أنه رقم
+                return user_id, None  
+            except ValueError:
+                print("Invalid user ID format")
+                return None, None
     else:
         return None, None
-@bot.message_handler(commands=['info_group'])
-def get_group_info(message):
-    chat_id = message.chat.id
-    
-    if chat_id > 0:
-        bot.reply_to(message, "🚫 هذا الأمر يعمل فقط داخل المجموعات.")
-        return
 
-    try:
-        chat = bot.get_chat(chat_id)
-        members_count = bot.get_chat_member_count(chat_id)  # تم التصحيح هنا
-        admins = bot.get_chat_administrators(chat_id)
-        admins_count = len(admins)
-        
-        # إزالة الجزء الخاص بالمحظورين لعدم وجود دالة مناسبة
-        # إزالة عد البوتات لعدم وجود طريقة مباشرة
-        
-        group_link = chat.invite_link if chat.invite_link else "🚫 لا يوجد رابط، هذه مجموعة خاصة"
 
-        group_info = (
-            "<b>📌 معلومات المجموعة:</b>\n"
-            "━━━━━━━━━━━━━━━━━━\n"
-            f"📝 <b>اسم المجموعة:</b> {chat.title}\n"
-            f"🆔 <b>آيدي المجموعة:</b> <code>{chat_id}</code>\n"
-            f"🔗 <b>رابط المجموعة:</b> {group_link}\n"
-            f"👥 <b>عدد الأعضاء:</b> {members_count}\n"
-            f"🔰 <b>عدد المشرفين:</b> {admins_count}\n"
-            "━━━━━━━━━━━━━━━━━━"
-        )
-
-        bot.send_message(chat_id, group_info, parse_mode="HTML")
-    
-    except Exception as e:
-        bot.reply_to(
-            message, 
-            f"🚫 <b>خطأ:</b>\n<code>{e}</code>", 
-            parse_mode="HTML"
-        )
         
                         
 
