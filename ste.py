@@ -1039,16 +1039,24 @@ def mute_user(message):
     
     # التحقق من أن المستخدم مشرف
     if not is_user_admin(bot, chat_id, user_id):
-        bot.reply_to(message, "⚠️ <b>عذرًا!</b>\nهذا الأمر مخصص للمشرفين فقط.\nلا تقم بذلك مرة أخرى، هذا أمر خطير!", parse_mode="HTML")
+        bot.reply_to(
+            message,
+            "⚠️ <b>عذرًا!</b>\nهذا الأمر مخصص للمشرفين فقط.\nلا تقم بذلك مرة أخرى، هذا أمر خطير!",
+            parse_mode="HTML"
+        )
         return
     
     # استخراج معلومات العضو المستهدف
     target_id, target_username = extract_user_info(bot, message)
     if not target_id:
-        bot.reply_to(message, "📌 <b>كيفية استخدام الأمر:</b>\n"
-                              "1️⃣ بالرد على رسالة العضو: <code>/mute</code>\n"
-                              "2️⃣ باستخدام الأيدي: <code>/mute 12345</code>\n"
-                              "3️⃣ لتقييد مؤقت: <code>/mute 12345 30</code> (30 دقيقة مثال)", parse_mode="HTML")
+        bot.reply_to(
+            message,
+            "📌 <b>كيفية استخدام الأمر:</b>\n"
+            "1️⃣ بالرد على رسالة العضو: <code>/mute</code>\n"
+            "2️⃣ باستخدام الأيدي: <code>/mute 12345</code>\n"
+            "3️⃣ لتقييد مؤقت: <code>/mute 12345 30</code> (30 دقيقة مثال)",
+            parse_mode="HTML"
+        )
         return
 
     # منع كتم المطور
@@ -1058,13 +1066,17 @@ def mute_user(message):
 
     command_parts = message.text.split()
     
-    # إذا كان الأمر بالرد على رسالة العضو
+    # تحديد مدة الكتم إن وجدت
     if message.reply_to_message:
         if len(command_parts) > 1:
             try:
                 mute_duration = int(command_parts[1])
             except ValueError:
-                bot.reply_to(message, "❌ <b>خطأ!</b>\nالمدة الزمنية يجب أن تكون رقمًا صحيحًا.", parse_mode="HTML")
+                bot.reply_to(
+                    message,
+                    "❌ <b>خطأ!</b>\nالمدة الزمنية يجب أن تكون رقمًا صحيحًا.",
+                    parse_mode="HTML"
+                )
                 return
         else:
             mute_duration = None
@@ -1073,30 +1085,54 @@ def mute_user(message):
             try:
                 mute_duration = int(command_parts[2])
             except ValueError:
-                bot.reply_to(message, "❌ <b>خطأ!</b>\nالمدة الزمنية يجب أن تكون رقمًا صحيحًا.", parse_mode="HTML")
+                bot.reply_to(
+                    message,
+                    "❌ <b>خطأ!</b>\nالمدة الزمنية يجب أن تكون رقمًا صحيحًا.",
+                    parse_mode="HTML"
+                )
                 return
         else:
             mute_duration = None
     
-    # تطبيق الكتم
+    # تطبيق الكتم مع التعامل مع الاستثناء في حال محاولة تقييد مسؤول الدردشة
     if mute_duration:
         until_date = int(time.time()) + mute_duration * 60
-        bot.restrict_chat_member(chat_id, target_id, until_date=until_date, can_send_messages=False)
-        
-        # رسالة التقيد المؤقت مع ذكر المدة
+        try:
+            bot.restrict_chat_member(
+                chat_id,
+                target_id,
+                until_date=until_date,
+                can_send_messages=False
+            )
+        except telebot.apihelper.ApiTelegramException as e:
+            if "user is an administrator" in str(e):
+                logging.error("محاولة تقييد مسؤول الدردشة، تم تجاهل الخطأ.")
+            else:
+                raise
         mute_message = (
-            f"🕛 <b>تـم تقـييـد الحـلـو</b> <a href='tg://user?id={target_id}'>{target_username or 'المستخدم'}</a> <b>المدة</b>: {mute_duration} دقيقة\n"
-            f"<b> 👀فـوتنـا عـلى وضـع الصامـت شـوي</b>"
+            f"🕛 <b>تـم تقـييـد الحـلـو</b> <a href='tg://user?id={target_id}'>{target_username or 'المستخدم'}</a> "
+            f"<b>المدة</b>: {mute_duration} دقيقة\n"
+            f"<b>👀 فـوتنـا عـلى وضـع الصامـت شـوي</b>"
         )
         bot.reply_to(message, mute_message, parse_mode="HTML")
     else:
-        bot.restrict_chat_member(chat_id, target_id, can_send_messages=False)
-
-        # رسالة التقيد الدائم
+        try:
+            bot.restrict_chat_member(
+                chat_id,
+                target_id,
+                can_send_messages=False
+            )
+        except telebot.apihelper.ApiTelegramException as e:
+            if "user is an administrator" in str(e):
+                logging.error("محاولة تقييد مسؤول الدردشة، تم تجاهل الخطأ.")
+            else:
+                raise
         mute_message = (
-            f"🔇 <b>🛂تـم حطـيته وضـع طـيـران </b> <a href='tg://user?id={target_id}'>{target_username or 'المستخدم'}</a> <b>بشكل دائـم</b>"
+            f"🔇 <b>🛂 تـم حطـيته وضـع طـيـران</b> <a href='tg://user?id={target_id}'>{target_username or 'المستخدم'}</a> "
+            f"<b>بشكل دائـم</b>"
         )
         bot.reply_to(message, mute_message, parse_mode="HTML")
+
 @bot.message_handler(commands=['unmute'])
 def unmute_user(message):
     chat_id = message.chat.id
