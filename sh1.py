@@ -85,10 +85,7 @@ def register_download_handlers(bot, is_user_admin):
         if file_path and os.path.exists(file_path):
             with open(file_path, "rb") as media:
                 caption = "<b>تـم التحميل بواسطـة @SY_SBbot</b>\n"
-                if "facebook.com" in url:
-                    caption += f"<b>تـم التحميل مـن ↩</b><a href='{url}'>الرابط هنا</a>"
-                elif "instagram.com" in url:
-                    caption += f"<b>تـم التحميل مـن ↩</b><a href='{url}'>الرابط هنا</a>"
+                caption += f"<b>تـم التحميل مـن ↩</b><a href='{url}'>الرابط هنا</a>"
 
                 if format_type == "video":
                     bot.send_video(chat_id, media, caption=caption, parse_mode="HTML")
@@ -105,41 +102,28 @@ def register_download_handlers(bot, is_user_admin):
 
     print("✅ تم تسجيل أوامر التحميل بنجاح.")
 
-# دالة تحميل الفيديو أو الصوت
 def download_media(url, format_type):
     output_dir = "downloads"
-    os.makedirs(output_dir, exist_ok=True)  # التأكد من وجود المجلد
+    os.makedirs(output_dir, exist_ok=True)
 
     output_path = os.path.join(output_dir, "%(title)s.%(ext)s")
     
-    # تعديل الخيارات لطلب أفضل تنسيق متاح
     ydl_opts = {
         "outtmpl": output_path,
         "format": "bestvideo+bestaudio/best" if format_type == "video" else "bestaudio",
         "merge_output_format": "mp4" if format_type == "video" else "mp3",
         "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}] if format_type == "audio" else [],
-        "cookiefile": cookies_file,  # استخدام ملف الكوكيز الموحد
+        "cookiefile": cookies_file,
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             file_name = ydl.prepare_filename(info)
-            
-            # التحقق من نوع المحتوى
-            if "stories" in url.lower():
-                return "story_error"  # تحديد حالة تحميل القصص غير المدعومة
-
             if format_type == "audio":
                 file_name = file_name.rsplit(".", 1)[0] + ".mp3"
             return file_name
     except Exception as e:
         print(f"Error: {e}")
         return None
-
-# دالة إضافية لإبلاغ المستخدم عند فشل تحميل القصص
-def handle_story_error(chat_id):
-    bot.send_message(
-        chat_id,
-        "❌ عذرًا ربما يكون الفيديو هو قصة من Instagram أو Facebook. للأسف لا أستطيع تحميل القصص بسبب سياسات المنصة يمكنك استخدام تطبيقات خارجية لتحميل القصص❤️\nلكن يمكنني مساعدتك في تحميل الفيديوهات العامة والريلز"
-        )
+        
