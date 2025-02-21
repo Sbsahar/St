@@ -61,7 +61,7 @@ REPORT_GROUPS_FILE = "report_groups.json"
 report_groups = {}
 # القاموس العام لتخزين الكلمات لكل مجموعة بصيغة {"group_id": ["كلمة1", "كلمة2", ...]}
 banned_words = {}
-register_channel_handlers(bot)
+
 # قائمة الصلاحيات الافتراضية مع أسمائها بالعربية
 PERMISSION_NAMES = {
     "can_delete_messages": "حذف الرسائل",
@@ -2300,6 +2300,8 @@ def send_animation(message):
 
     bot.send_animation(message.chat.id, animation_file_id, caption=caption, parse_mode="HTML", reply_markup=keyboard)
 
+
+register_channel_handlers(bot)
 
 
 
