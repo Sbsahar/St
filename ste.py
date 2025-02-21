@@ -61,6 +61,7 @@ REPORT_GROUPS_FILE = "report_groups.json"
 report_groups = {}
 # القاموس العام لتخزين الكلمات لكل مجموعة بصيغة {"group_id": ["كلمة1", "كلمة2", ...]}
 banned_words = {}
+register_channel_handlers(bot)
 
 # قائمة الصلاحيات الافتراضية مع أسمائها بالعربية
 PERMISSION_NAMES = {
@@ -2372,7 +2373,7 @@ def save_reply(message):
         bot.reply_to(message, "❌ نوع الوسائط غير مدعوم")
 
 
-register_channel_handlers(bot)
+
 @bot.message_handler(func=lambda message: message.content_type == 'text')
 def handle_messages(message):
     if message.chat.type == "private":
