@@ -1,3 +1,4 @@
+from download_module import register_download_handlers 
 import channel_checker
 from channel_module import register_channel_handlers
 import threading
