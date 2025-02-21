@@ -33,6 +33,9 @@ def is_subscribed(bot, channel_username, user_id):
 # المتغير لتخزين معرفات الرسائل التحذيرية لكل مستخدم
 last_warning = {}
 
+def format_mention(user):
+    return f"<a href='tg://user?id={user.id}'>{user.first_name}</a>"
+
 def set_channel(message, bot):
     chat_id = message.chat.id
     if message.chat.type not in ['group', 'supergroup']:
@@ -79,7 +82,8 @@ def check_subscription(message, bot):
         return  # تجنب التداخل مع أوامر البوت الأساسي
     
     channel_username = group_channels[str(chat_id)]
-    user_id = message.from_user.id
+    user = message.from_user
+    user_id = user.id
     if is_subscribed(bot, channel_username, user_id):
         return
     try:
@@ -89,7 +93,7 @@ def check_subscription(message, bot):
     markup = types.InlineKeyboardMarkup()
     btn = types.InlineKeyboardButton("أضـغط للأشـتراك", url=f"https://t.me/{channel_username.lstrip('@')}")
     markup.add(btn)
-    warning_text = "<b>مرحباً عزيزي، لا يمكنك الكتابة وإرسال الرسائل هنا إذا لم تكن مشتركاً في قناة المجموعة.</b>"
+    warning_text = f"<b>مرحباً {format_mention(user)}، لا يمكنك الكتابة وإرسال الرسائل هنا إذا لم تكن مشتركاً في قناة المجموعة.</b>"
     key = f"{chat_id}_{user_id}"
     if key in last_warning:
         try:
@@ -112,4 +116,4 @@ def register_channel_handlers(bot: TeleBot):
                          content_types=['text', 'photo', 'video', 'document', 'sticker'])
     def handle_check_subscription(message):
         check_subscription(message, bot)
-        
+    
