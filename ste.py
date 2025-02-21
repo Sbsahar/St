@@ -29,7 +29,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()]
 )
-TOKEN = '7327783438:AAGmnM5fE1aKO-bEYNfb1dqUHOfLryH3a6g'
+TOKEN = '7588670003:AAEJSTkUqMYiNdjL17UsoM5O4a87YPiHhsc'
 YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
 BOT_USERNAME = '@SY_SBbot'
 CHANNEL_URL = 'https://t.me/SYR_SB'
@@ -656,7 +656,7 @@ def send_restart_message():
                 if chat_id:
                     bot.send_message(
                         chat_id,
-                        "✅ <b>تم تشغيل البوت بنجاح✓ وجلب التحديثات الأخيرة عزيزي المطور ✔️</b>",
+                        "✅ <b>تـم تشغـيل البوت بنجاح وجلب التحـديثات الأخـيرة عـزيزي المطور ✔️</b>",
                         parse_mode="HTML"
                     )
             os.remove(DATA_FILE)  # حذف الملف بعد الاستخدام
