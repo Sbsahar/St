@@ -97,7 +97,10 @@ def check_subscription(message, bot):
     last_warning[key] = sent.message_id
 
 def register_channel_handlers(bot: TeleBot):
-    bot.register_message_handler(lambda message: set_channel(message, bot), commands=['setchannel'])
-    bot.register_message_handler(lambda message: stop_set_channel(message, bot), commands=['stopsetchannel'])
-    bot.register_message_handler(lambda message: check_subscription(message, bot), func=lambda message: True, content_types=['text', 'photo', 'video', 'document', 'sticker'])
+    def register_channel_handlers(bot):
+    bot.add_message_handler(types.MessageHandler(lambda message: set_channel(message, bot), commands=['setchannel']))
+    bot.add_message_handler(types.MessageHandler(lambda message: stop_set_channel(message, bot), commands=['stopsetchannel']))
+    bot.add_message_handler(types.MessageHandler(lambda message: check_subscription(message, bot), 
+                                                 func=lambda message: True, 
+                                                 content_types=['text', 'photo', 'video', 'document', 'sticker']))
     
