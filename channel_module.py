@@ -91,9 +91,9 @@ def check_subscription(message, bot):
     except Exception:
         pass
     markup = types.InlineKeyboardMarkup()
-    btn = types.InlineKeyboardButton("☛أضـغط للأشـتراك☚", url=f"https://t.me/{channel_username.lstrip('@')}")
+    btn = types.InlineKeyboardButton("☚أضـغط للأشـتراك☛", url=f"https://t.me/{channel_username.lstrip('@')}")
     markup.add(btn)
-    warning_text = f"<b>مرحباً {format_mention(user)}، ▼🧸لا يمكنك الكتابة✎ وإرسال الرسائل ✉ هنا إذا لم تكن مشتركاً في قناة المجموعة.</b>"
+    warning_text = f"<b>مرحباً {format_mention(user)}،  يمكنك الكتابةلا✎ وإرسال الرسائل ✉ هنا إذا لم تكن مشتركاً في قناة المجموعة.</b>"
     key = f"{chat_id}_{user_id}"
     if key in last_warning:
         try:
@@ -116,4 +116,4 @@ def register_channel_handlers(bot: TeleBot):
                          content_types=['text', 'photo', 'video', 'document', 'sticker'])
     def handle_check_subscription(message):
         check_subscription(message, bot)
-    
+
