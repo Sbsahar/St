@@ -647,15 +647,14 @@ def update_restart_message():
 
                 if chat_id and message_id:
                     bot.edit_message_text(
-                        "✅ <b>تم تحديث البوت عزيزي المطور وجلب التحديثات بنجاح ✓</b>", 
-                        chat_id, 
-                        message_id, 
+                        "✅ <b>تم تشغيل البوت بنجاح✓ وجلب التحديثات الأخيرة عزيزي المطور ✔️</b>",
+                        chat_id,
+                        message_id,
                         parse_mode="HTML"
                     )
             os.remove(DATA_FILE)  # حذف الملف بعد الاستخدام
         except Exception as e:
             print(f"خطأ في إعادة التشغيل: {e}")
-
 
 
 @bot.message_handler(commands=['gbt'])
