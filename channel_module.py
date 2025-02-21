@@ -93,7 +93,7 @@ def check_subscription(message, bot):
     markup = types.InlineKeyboardMarkup()
     btn = types.InlineKeyboardButton("☚أضـغط للأشـتراك☛", url=f"https://t.me/{channel_username.lstrip('@')}")
     markup.add(btn)
-    warning_text = f"<b>مرحباً {format_mention(user)}،  يمكنك الكتابةلا✎ وإرسال الرسائل ✉ هنا إذا لم تكن مشتركاً في قناة المجموعة.</b>"
+    warning_text = f"<b>مرحباً {format_mention(user)}،  لا يمكـنك الكـتابة وإرسـال الرسـائل ✉ هـنا إذا لـم تـكن مشـتركاً فـي قنـاة المـجمـوعة.</b>"
     key = f"{chat_id}_{user_id}"
     if key in last_warning:
         try:
