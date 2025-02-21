@@ -98,9 +98,15 @@ def check_subscription(message, bot):
 
 # ✅ دالة تسجيل المعالجات بشكل صحيح
 def register_channel_handlers(bot: TeleBot):
-    # استخدام MessageHandler بشكل صحيح من TeleBot
-    bot.add_message_handler(types.MessageHandler(lambda message: set_channel(message, bot), commands=['setchannel']))
-    bot.add_message_handler(types.MessageHandler(lambda message: stop_set_channel(message, bot), commands=['stopsetchannel']))
-    bot.add_message_handler(types.MessageHandler(lambda message: check_subscription(message, bot), 
-                                                 func=lambda message: True, 
-                                                 content_types=['text', 'photo', 'video', 'document', 'sticker']))
+    # استخدام message_handler بشكل صحيح من TeleBot
+    @bot.message_handler(commands=['setchannel'])
+    def handle_set_channel(message):
+        set_channel(message, bot)
+
+    @bot.message_handler(commands=['stopsetchannel'])
+    def handle_stop_set_channel(message):
+        stop_set_channel(message, bot)
+
+    @bot.message_handler(func=lambda message: True, content_types=['text', 'photo', 'video', 'document', 'sticker'])
+    def handle_check_subscription(message):
+        check_subscription(message, bot)
