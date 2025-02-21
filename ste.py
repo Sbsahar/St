@@ -608,9 +608,9 @@ def restart_bot(message):
     chat_id = message.chat.id
     message_id = message.message_id
 
-    # حفظ مكان الرسالة في ملف JSON
+    # حفظ بيانات الرسالة في ملف JSON
     with open(DATA_FILE, "w") as f:
-        json.dump({"chat_id": chat_id, "message_id": message_id}, f)
+        json.dump({"chat_id": chat_id}, f)
 
     progress_messages = [
         "■ 10%", "■■ 20%", "■■■ 30%", "■■■■ 40%", 
@@ -622,39 +622,45 @@ def restart_bot(message):
 
     for progress in progress_messages:
         time.sleep(0.5)  
-        bot.edit_message_text(f"🚀 <b>جاري تحديث البوت عزيزي المطور...</b> ⏳\n{progress}", chat_id, msg.message_id, parse_mode="HTML")
+        bot.edit_message_text(f"🚀 <b>جـاري تحديث البوت عـزيزي المطور...</b> ⏳\n{progress}", chat_id, msg.message_id, parse_mode="HTML")
 
     time.sleep(1)
-    bot.edit_message_text("⎙ <b>جاري إعادة تشغيل البوت وجلب التحديثات...</b> ✨", chat_id, msg.message_id, parse_mode="HTML")
+    final_msg = bot.edit_message_text("⎙ <b>جـاري إعـادة تشغيل البوت وجلب التحـديثات...</b> ✨", chat_id, msg.message_id, parse_mode="HTML")
+
+    # حفظ معرف الرسالة الأخيرة قبل الحذف
+    with open(DATA_FILE, "w") as f:
+        json.dump({"chat_id": chat_id, "last_message_id": final_msg.message_id}, f)
 
     time.sleep(2)
+
+    # حذف الرسالة الأخيرة قبل إعادة التشغيل
+    bot.delete_message(chat_id, final_msg.message_id)
 
     # سحب التحديثات من GitHub
     subprocess.run(["git", "pull", "origin", "main"])
 
-    # إعادة تشغيل البوت بنفس العملية
+    # إعادة تشغيل البوت
     os.execv(sys.executable, ['python3', 'ste.py'])
 
 
-def update_restart_message():
-    """تحديث نفس الرسالة بعد إعادة التشغيل"""
+def send_restart_message():
+    """إرسال رسالة جديدة بعد إعادة التشغيل"""
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r") as f:
                 data = json.load(f)
                 chat_id = data.get("chat_id")
-                message_id = data.get("message_id")
 
-                if chat_id and message_id:
-                    bot.edit_message_text(
-                        "✅ <b>تم تشغيل البوت بنجاح✓ وجلب التحديثات الأخيرة عزيزي المطور ✔️</b>",
+                if chat_id:
+                    bot.send_message(
                         chat_id,
-                        message_id,
+                        "✅ <b>تـم تشغـيل الـبوت بنجاح✓ وجلب التحـديثات الأخـيرة عـزيزي الـمطور ✔️</b>",
                         parse_mode="HTML"
                     )
             os.remove(DATA_FILE)  # حذف الملف بعد الاستخدام
         except Exception as e:
-            print(f"خطأ في إعادة التشغيل: {e}")
+            print(f"خطأ في بعد التشغيل: {e}")
+
 
 
 @bot.message_handler(commands=['gbt'])
