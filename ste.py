@@ -664,6 +664,59 @@ def send_restart_message():
             print(f"خطأبعد التشغيل: {e}")
 
 
+@bot.message_handler(commands=['dev'])
+def call_developer(message):
+    """استدعاء المطور من قبل المشرفين فقط"""
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+
+    # التحقق من أن الأمر في مجموعة
+    if message.chat.type == "private":
+        bot.reply_to(message, "❌ هذا الأمر متاح فقط في المجموعات.")
+        return
+
+    # التحقق مما إذا كان المستخدم مشرفًا
+    try:
+        chat_member = bot.get_chat_member(chat_id, user_id)
+        if chat_member.status not in ['administrator', 'creator']:
+            bot.reply_to(message, "❌ هذا الأمر مخصص للمشرفين فقط.")
+            return
+    except Exception as e:
+        bot.reply_to(message, "⚠️ حدث خطأ أثناء التحقق من الصلاحيات.")
+        return
+
+    # إرسال الرسالة الأولى
+    msg = bot.reply_to(
+        message,
+        "⏳ <b>جاري إرسال نداء إلى المطور... انتظر لحظة</b> 🚀",
+        parse_mode="HTML"
+    )
+
+    # بعد 5 ثوانٍ، تعديل الرسالة
+    time.sleep(5)
+    bot.edit_message_text(
+        "✅ <b>تم إرسال نداء إلى المطور وسوف يأتي إلى مساعدتك في أقرب فرصة ممكنة</b> ✔️",
+        chat_id,
+        msg.message_id,
+        parse_mode="HTML"
+    )
+
+    # إرسال رسالة إلى المطور
+    user = message.from_user
+    group_link = f'<a href="https://t.me/{message.chat.username}">رابط المجموعة</a>' if message.chat.username else "لا يوجد رابط"
+    
+    dev_message = f"""
+🚨 <b>نداء للمطور!</b> 🚨
+
+<b>المستخدم:</b> {user.first_name}
+<b>اليوزر:</b> @{user.username if user.username else 'لا يوجد'}
+<b>المعرف:</b> <code>{user.id}</code>
+<b>المجموعة:</b> {message.chat.title}
+<b>الرابط:</b> {group_link}
+    """
+    bot.send_message(DEVELOPER_CHAT_ID, dev_message, parse_mode="HTML")
+
+
 
 @bot.message_handler(commands=['gbt'])
 def handle_gbt_command(message):
