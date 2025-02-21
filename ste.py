@@ -622,10 +622,10 @@ def restart_bot(message):
 
     for progress in progress_messages:
         time.sleep(0.5)  
-        bot.edit_message_text(f"🚀 <b>جـاري تحديث البوت عـزيزي المطور...</b> ⏳\n{progress}", chat_id, msg.message_id, parse_mode="HTML")
+        bot.edit_message_text(f"🚀 <b>جاري تحديث البوت عزيزي المطور...</b> ⏳\n{progress}", chat_id, msg.message_id, parse_mode="HTML")
 
     time.sleep(1)
-    final_msg = bot.edit_message_text("⎙ <b>جـاري إعـادة تشغيل البوت وجلب التحـديثات...</b> ✨", chat_id, msg.message_id, parse_mode="HTML")
+    final_msg = bot.edit_message_text("⎙ <b>جاري إعادة تشغيل البوت وجلب التحديثات...</b> ✨", chat_id, msg.message_id, parse_mode="HTML")
 
     # حفظ معرف الرسالة الأخيرة قبل الحذف
     with open(DATA_FILE, "w") as f:
@@ -645,6 +645,8 @@ def restart_bot(message):
 
 def send_restart_message():
     """إرسال رسالة جديدة بعد إعادة التشغيل"""
+    time.sleep(3)  # تأخير بسيط للتأكد أن البوت جاهز للإرسال
+
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r") as f:
@@ -654,12 +656,12 @@ def send_restart_message():
                 if chat_id:
                     bot.send_message(
                         chat_id,
-                        "✅ <b>تـم تشغـيل الـبوت بنجاح✓ وجلب التحـديثات الأخـيرة عـزيزي الـمطور ✔️</b>",
+                        "✅ <b>تم تشغيل البوت بنجاح✓ وجلب التحديثات الأخيرة عزيزي المطور ✔️</b>",
                         parse_mode="HTML"
                     )
             os.remove(DATA_FILE)  # حذف الملف بعد الاستخدام
         except Exception as e:
-            print(f"خطأ في بعد التشغيل: {e}")
+            print(f"خطأبعد التشغيل: {e}")
 
 
 
@@ -2558,6 +2560,9 @@ load_detection_status()
 reset_daily_reports()  
 
 
-if __name__ == '__main__':
-    bot.polling(none_stop=True)
+if __name__ == "__main__":
+    # تشغيل وظيفة الإرسال في مسار منفصل
+    threading.Thread(target=send_restart_message).start()
 
+    # تشغيل البوت
+    bot.polling()
