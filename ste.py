@@ -789,8 +789,8 @@ def ban_user(message):
 
         # تنسيق رسالة الحظر
         banned_message = (
-            f"👤 <b>الـحـلـو:</b> <a href='tg://user?id={target_id}'>{target_full_name}</a>\n"
-            "✅ <b>تـم حظـره بنجـاح</b> 🚫"
+            f"👤 <b>الـمسـافـر:</b> <a href='tg://user?id={target_id}'>{target_full_name}</a>\n"
+            "✅ <b>رحلـة باتجاه واحـد.. مـع ألـف سـلامة ✈️</b> 🚫"
         )
 
         bot.reply_to(message, banned_message, parse_mode="HTML")
@@ -884,7 +884,7 @@ def mute_user(message):
         # رسالة التقيد المؤقت مع ذكر المدة
         mute_message = (
             f"🕛 <b>تـم تقـييـد الحـلـو</b> <a href='tg://user?id={target_id}'>{target_username or 'المستخدم'}</a> <b>المدة</b>: {mute_duration} دقيقة\n"
-            f"<b>بعـد أنتهـاء الوقت ⌛ سيعـود لأزعـاجنـا</b>"
+            f"<b> 👀فـوتنـا عـلى وضـع الصامـت شـوي</b>"
         )
         bot.reply_to(message, mute_message, parse_mode="HTML")
     else:
@@ -892,7 +892,7 @@ def mute_user(message):
 
         # رسالة التقيد الدائم
         mute_message = (
-            f"🔇 <b>تـم تقـييـد الحـلـو</b> <a href='tg://user?id={target_id}'>{target_username or 'المستخدم'}</a> <b>بشكل دائـم</b>"
+            f"🔇 <b>🛂تـم حطـيته وضـع طـيـران </b> <a href='tg://user?id={target_id}'>{target_username or 'المستخدم'}</a> <b>بشكل دائـم</b>"
         )
         bot.reply_to(message, mute_message, parse_mode="HTML")
 @bot.message_handler(commands=['unmute'])
@@ -921,8 +921,8 @@ def unmute_user(message):
         mention = f'<a href="tg://user?id={target_id}">{target_username or "المستخدم"}</a>'
 
         # الرد مع التاك
-        bot.reply_to(message, f"<b>تـم إلغاء تقييد الحـلـو</b> {mention}.\n"
-                              f"🎉 <b>الآن يمكنه التحدث بحرية مرة أخرى!</b>", parse_mode="HTML")
+        bot.reply_to(message, f"<b>  ✈️تم الغاء وضع الطيران</b> {mention}.\n"
+                              f"🎉 <b>🔊وتم وضعه عام</b>", parse_mode="HTML")
     except Exception as e:
         bot.reply_to(message, f"❌ حدث خطأ أثناء محاولة إلغاء تقييد العضو: {e}")
               
@@ -1201,7 +1201,7 @@ def settings(message):
 
     # إرسال رسالة الإعدادات مع الأزرار
     bot.send_message(
-        chat_id, "<b>⚙️ إعـدادات الـبـوت</b>\n\nاخـتـر أحـد الأقـسـام أدنـاه:", 
+        chat_id, "<b>⚙️ إعـدادات الـبـوت للمزيد شاهد قناة التعليمات @iizz2z </b>\n\nاخـتـر أحـد الأقـسـام أدنـاه:", 
         reply_markup=keyboard, parse_mode="HTML"
     )
 
