@@ -1,6 +1,5 @@
 from channel_module import register_channel_handlers
 from sh1 import register_download_handlers  
-from admin_utils import is_user_admin
 import channel_checker
 import threading
 from youtube_module import YoutubeModule
@@ -117,7 +116,7 @@ def is_user_admin(chat_id, user_id):
     except Exception:
         return False
 
-
+register_download_handlers(bot, is_user_admin)
 # حفظ إعدادات التقارير
 def save_report_groups():
     with open(REPORT_GROUPS_FILE, "w", encoding="utf-8") as f:
