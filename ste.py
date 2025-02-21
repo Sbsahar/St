@@ -229,13 +229,12 @@ def get_all_members(chat_id):
         members.extend(chunk)
         offset += len(chunk)
     return members
-    
-def is_user_admin(bot, chat_id, user_id):
-    """
-    التحقق مما إذا كان المستخدم مشرفًا في المجموعة أو المطور.
-    """
-    if user_id == DEVELOPER_CHAT_ID:  # السماح للمطور بالتحكم دون الحاجة لأن يكون مشرفًا
-        return True
+
+
+def is_admin(chat_id, user_id):
+    """التحقق مما إذا كان المستخدم مشرفًا أو المطور"""
+    if is_developer(user_id):  
+        return True  # السماح للمطور باستخدام جميع الأوامر دائمًا
 
     try:
         admins = bot.get_chat_administrators(chat_id)
@@ -243,6 +242,7 @@ def is_user_admin(bot, chat_id, user_id):
     except Exception as e:
         print(f"Error checking admin status: {e}")
         return False
+    
 
 
 def check_image_safety(image_path):
