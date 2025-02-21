@@ -1197,7 +1197,7 @@ def settings(message):
     keyboard.add(InlineKeyboardButton("💬 الردود والمنشن", callback_data=f"settings_replies_{user_id}"))
     keyboard.add(InlineKeyboardButton("📥 التحميل من السوشيال ميديا", callback_data=f"settings_downloads_{user_id}"))
     keyboard.add(InlineKeyboardButton("🔍 الحماية المتقدمة والكاشف الذكي", callback_data=f"settings_detection_{user_id}"))
-    keyboard.add(InlineKeyboardButton("المطور 👩🏻‍💻", url="https://t.me/SB_SAHAR"))
+    keyboard.add(InlineKeyboardButton("قناة التحديثات🦅", url="https://t.me/iizz2z"))
 
     # إرسال رسالة الإعدادات مع الأزرار
     bot.send_message(
