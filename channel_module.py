@@ -112,8 +112,15 @@ def register_channel_handlers(bot: TeleBot):
     def handle_stop_set_channel(message):
         stop_set_channel(message, bot)
 
-    @bot.message_handler(func=lambda message: message.chat.type in ['group', 'supergroup'] and str(message.chat.id) in group_channels and not is_subscribed(bot, group_channels[str(message.chat.id)], message.from_user.id),
-                         content_types=['text', 'photo', 'video', 'document', 'sticker'])
+    @bot.message_handler(
+        func=lambda message: (
+            message.chat.type in ['group', 'supergroup'] and 
+            str(message.chat.id) in group_channels and 
+            not is_subscribed(bot, group_channels[str(message.chat.id)], message.from_user.id) and 
+            not message.text.startswith("/")  # لا يعترض أوامر البوت الأخرى
+        ),
+        content_types=['text', 'photo', 'video', 'document', 'sticker']
+    )
     def handle_check_subscription(message):
         check_subscription(message, bot)
     
