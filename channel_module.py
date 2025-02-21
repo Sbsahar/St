@@ -1,7 +1,7 @@
 import json
 import os
 from telebot import TeleBot, types
-
+register_channel_handlers(bot)
 # ملف لتخزين إعدادات القنوات لكل مجموعة (دائم)
 DATA_FILE = 'group_channels.json'
 
