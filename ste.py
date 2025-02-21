@@ -670,7 +670,7 @@ def call_developer(message):
     chat_id = message.chat.id
     user_id = message.from_user.id
 
-    # التحقق من أن الأمر في مجموعة
+    # التأكد من أن الأمر يُستخدم في المجموعات فقط
     if message.chat.type == "private":
         bot.reply_to(message, "❌ هذا الأمر متاح فقط في المجموعات.")
         return
@@ -701,10 +701,18 @@ def call_developer(message):
         parse_mode="HTML"
     )
 
-    # إرسال رسالة إلى المطور
+    # محاولة استخراج رابط المجموعة
+    if message.chat.username:
+        group_link = f'<a href="https://t.me/{message.chat.username}">رابط المجموعة</a>'
+    else:
+        try:
+            invite_link = bot.export_chat_invite_link(chat_id)
+            group_link = f'<a href="{invite_link}">رابط المجموعة</a>'
+        except Exception as e:
+            group_link = "لا يوجد رابط"
+
+    # إرسال رسالة إلى المطور مع بيانات المستخدم والمجموعة
     user = message.from_user
-    group_link = f'<a href="https://t.me/{message.chat.username}">رابط المجموعة</a>' if message.chat.username else "لا يوجد رابط"
-    
     dev_message = f"""
 🚨 <b>نداء للمطور!</b> 🚨
 
@@ -715,6 +723,7 @@ def call_developer(message):
 <b>الرابط:</b> {group_link}
     """
     bot.send_message(DEVELOPER_CHAT_ID, dev_message, parse_mode="HTML")
+
 
 
 
