@@ -112,8 +112,8 @@ def register_channel_handlers(bot: TeleBot):
     def handle_stop_set_channel(message):
         stop_set_channel(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text and not message.text.startswith("/"),
+    @bot.message_handler(func=lambda message: not message.text.startswith("/") and message.chat.type in ['group', 'supergroup'],
                          content_types=['text', 'photo', 'video', 'document', 'sticker'])
     def handle_check_subscription(message):
         check_subscription(message, bot)
-
+    
