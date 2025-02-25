@@ -132,6 +132,16 @@ def is_developer(user_id):
     return str(user_id) == str(DEVELOPER_CHAT_ID)
         
 
+def normalize_text(text):
+    # إزالة التشكيل العربي (حركات مثل الفتحة، الضمة، الكسرة)
+    text = re.sub(r'[\u0617-\u061A\u064B-\u065F]', '', text)
+    # إزالة المسافات أو الرموز الفاصلة غير الضرورية
+    text = re.sub(r'[-\s]+', '', text)
+    return text.lower()
+
+def get_message_text(msg):
+    return msg.text or msg.caption or ""
+
 
 def save_welcome():
     with open('welcome.json', 'w') as f:
@@ -2588,22 +2598,22 @@ def save_reply(message):
     else:
         bot.reply_to(message, "❌ نوع الوسائط غير مدعوم")
 
-
-
 @bot.message_handler(func=lambda message: message.content_type == 'text')
 def handle_messages(message):
     if message.chat.type == "private":
         return
 
     chat_id = message.chat.id
-    text = get_message_text(message).strip().lower()
+    text = get_message_text(message)
+    normalized_text = normalize_text(text)  # توحيد النص المدخل
 
     # === (1) فحص الكلمات المحظورة ===
     group_id = str(chat_id)
     if group_id in banned_words and banned_words[group_id]:
         for word in banned_words[group_id]:
-            pattern = r'\b' + re.escape(word) + r'\b'
-            if re.search(pattern, text, flags=re.IGNORECASE):
+            normalized_word = normalize_text(word)  # توحيد الكلمة المحظورة
+            # التحقق من وجود الكلمة المحظورة في النص بعد التوحيد
+            if normalized_word in normalized_text:
                 try:
                     bot.delete_message(chat_id, message.message_id)
                 except Exception as e:
@@ -2617,7 +2627,9 @@ def handle_messages(message):
                     "🚫 ممنوع إرسال كلمات محظورة في المجموعة.",
                     parse_mode="HTML"
                 )
-                return  # إيقاف التنفيذ بعد حذف الرسالة
+                return    
+
+
 
     # === (2) فحص الردود التلقائية ===
     if message.reply_to_message:
