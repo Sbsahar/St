@@ -477,16 +477,17 @@ def send_violation_report(channel_id, message, violation_type):
         print(f"❌ خطأ في إرسال التقرير: {str(e)}")
 
 
-@bot.chat_member_handler()
-def welcome_developer(update: ChatMemberUpdated):
-    """ترحب بالمطور عند انضمامه إلى أي مجموعة يكون فيها البوت"""
-    if str(update.new_chat_member.user.id) == str(DEVELOPER_CHAT_ID) and update.new_chat_member.status in ["member", "administrator", "creator"]:
-        bot.send_message(
-            update.chat.id,
-            f"⚡ <b>انضم مطور البوت</b> <a href='tg://user?id={DEVELOPER_CHAT_ID}'>@SB_SAHAR</a> <b>إلى المجموعة</b> ⚡\n\n"
-            "☺️ <b>أهلاً بك مطوري العزيز!</b>",
-            parse_mode="HTML"
-        )
+@bot.message_handler(content_types=['new_chat_members'])
+def welcome_developer_alternative(message):
+    for member in message.new_chat_members:
+        if member.id == int(DEVELOPER_CHAT_ID):
+            bot.send_message(
+                message.chat.id,
+                f"⚡ <b>انضم مطور البوت</b> <a href='tg://user?id={DEVELOPER_CHAT_ID}'>@SB_SAHAR</a> <b>إلى المجموعة</b> ⚡\n\n"
+                "☺️ <b>أهلاً بك مطوري العزيز!</b>",
+                parse_mode="HTML"
+            )
+            break
 
 
 @bot.message_handler(content_types=['left_chat_member'])
