@@ -2604,16 +2604,15 @@ def handle_messages(message):
         return
 
     chat_id = message.chat.id
-    text = get_message_text(message)
-    normalized_text = normalize_text(text)  # توحيد النص المدخل
+    text = get_message_text(message)  # جلب النص (سواء نص عادي أو تعليق)
+    normalized_text = normalize_text(text)  # توحيد النص لإزالة التشكيل والمسافات
 
     # === (1) فحص الكلمات المحظورة ===
     group_id = str(chat_id)
     if group_id in banned_words and banned_words[group_id]:
         for word in banned_words[group_id]:
             normalized_word = normalize_text(word)  # توحيد الكلمة المحظورة
-            # التحقق من وجود الكلمة المحظورة في النص بعد التوحيد
-            if normalized_word in normalized_text:
+            if normalized_word in normalized_text:  # التحقق من وجود الكلمة بعد التوحيد
                 try:
                     bot.delete_message(chat_id, message.message_id)
                 except Exception as e:
@@ -2627,7 +2626,7 @@ def handle_messages(message):
                     "🚫 ممنوع إرسال كلمات محظورة في المجموعة.",
                     parse_mode="HTML"
                 )
-                return    
+                return  # إيقاف التنفيذ بعد حذف الرسالة    
 
 
 
