@@ -104,8 +104,10 @@ async def handle_verification(event):
         if event.sender_id == int(user_id):
             del pending_verifications[chat_id][user_id]
             await event.edit(
-                f"✅ <b>تم التحقق!</b>\n"
-                f"أهلاً بك <a href="tg://user?id={user_id}'>{event.sender.first_name}</a>، أنت إنسان حقيقي! 🎉",
+                (
+                    f"✅ <b>تم التحقق!</b>\n"
+                    f"أهلاً بك <a href='tg://user?id={user_id}'>{event.sender.first_name}</a>، أنت إنسان حقيقي! 🎉"
+                ),
                 parse_mode='html'
             )
             save_verification_status({'mode': verification_mode, 'pending': pending_verifications})
