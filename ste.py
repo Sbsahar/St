@@ -28,8 +28,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()]
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
     
 )
 TOKEN = '7588670003:AAEJSTkUqMYiNdjL17UsoM5O4a87YPiHhsc'
