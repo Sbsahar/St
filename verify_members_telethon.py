@@ -35,44 +35,46 @@ verification_status = load_verification_status()
 verification_mode = verification_status['mode']  # {chat_id: True/False}
 pending_verifications = verification_status['pending']  # {chat_id: {user_id: timestamp}}
 
-# التعامل مع انضمام الأعضاء الجدد
-@client.on(events.ChatAction)
+# التعامل مع انضمام الأعضاء الجدد عبر رسائل النظام
+@client.on(events.NewMessage)
 async def handle_new_member(event):
-    # إعادة تحميل الحالة في كل حدث للتأكد من التحديث
+    # إعادة تحميل الحالة في كل حدث
     global verification_mode, pending_verifications
     verification_status = load_verification_status()
     verification_mode = verification_status['mode']
-    
+
     chat_id = str(event.chat_id)
-    logger.info(f"حدث ChatAction في {chat_id}: user_added={event.user_added}, user_joined={event.user_joined}")
-    
     if not verification_mode.get(chat_id, False):
-        logger.info(f"وضع التحقق غير مفعل في {chat_id}")
         return
 
-    if event.user_added or event.user_joined:
-        user_id = str(event.user_id)
-        try:
-            user = await client.get_entity(event.user_id)
-            mention = f'<a href="tg://user?id={user_id}">{user.first_name}</a>'
-            
-            buttons = [[Button.inline("✅ أنا إنسان", data=f"verify_{user_id}")]]
-            
-            msg = await client.send_message(
-                chat_id,
-                f"👋 <b>أهلاً بك عزيزي {mention}!</b>\n"
-                "يرجى الضغط على 'أنا إنسان' خلال 3 دقائق للتحقق منك، وإلا سأظنك زومبي وسأطردك! 🧟‍♂️",
-                parse_mode='html',
-                buttons=buttons
-            )
-            pending_verifications.setdefault(chat_id, {})[user_id] = time.time()
-            logger.info(f"تم طلب التحقق من {user_id} في {chat_id}")
-            
-            # جدولة الطرد بعد 3 دقائق
-            await asyncio.sleep(180)
-            await check_verification_timeout(chat_id, user_id, user.first_name)
-        except Exception as e:
-            logger.error(f"خطأ في إرسال رسالة التحقق: {e}")
+    # التحقق من رسائل النظام لانضمام أعضاء جدد
+    if event.message.action and hasattr(event.message.action, 'users'):
+        new_users = event.message.action.users  # قائمة بمعرفات الأعضاء الجدد
+        logger.info(f"انضمام أعضاء جدد في {chat_id}: {new_users}")
+
+        for user_id in new_users:
+            user_id_str = str(user_id)
+            try:
+                user = await client.get_entity(user_id)
+                mention = f'<a href="tg://user?id={user_id_str}">{user.first_name}</a>'
+                
+                buttons = [[Button.inline("✅ أنا إنسان", data=f"verify_{user_id_str}")]]
+                
+                msg = await client.send_message(
+                    chat_id,
+                    f"👋 <b>أهلاً بك عزيزي {mention}!</b>\n"
+                    "يرجى الضغط على 'أنا إنسان' خلال 3 دقائق للتحقق منك، وإلا سأظنك زومبي وسأطردك! 🧟‍♂️",
+                    parse_mode='html',
+                    buttons=buttons
+                )
+                pending_verifications.setdefault(chat_id, {})[user_id_str] = time.time()
+                logger.info(f"تم طلب التحقق من {user_id_str} في {chat_id}")
+                
+                # جدولة الطرد بعد 3 دقائق
+                await asyncio.sleep(180)
+                await check_verification_timeout(chat_id, user_id_str, user.first_name)
+            except Exception as e:
+                logger.error(f"خطأ في إرسال رسالة التحقق لـ {user_id_str}: {e}")
 
 # التحقق من انتهاء المهلة
 async def check_verification_timeout(chat_id, user_id, user_name):
@@ -103,7 +105,7 @@ async def handle_verification(event):
             del pending_verifications[chat_id][user_id]
             await event.edit(
                 f"✅ <b>تم التحقق!</b>\n"
-                f"أهلاً بك <a href='tg://user?id={user_id}'>{event.sender.first_name}</a>، أنت إنسان حقيقي! 🎉",
+                f"أهلاً بك <a href="tg://user?id={user_id}'>{event.sender.first_name}</a>، أنت إنسان حقيقي! 🎉",
                 parse_mode='html'
             )
             save_verification_status({'mode': verification_mode, 'pending': pending_verifications})
