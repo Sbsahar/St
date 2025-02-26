@@ -67,9 +67,7 @@ DATA_FILE = "restart_data.json"
 report_groups = {}
 # القاموس العام لتخزين الكلمات لكل مجموعة بصيغة {"group_id": ["كلمة1", "كلمة2", ...]}
 banned_words = {}
-verification_mode = {}  # {chat_id: True/False}
-pending_verifications = {}  # {chat_id: {user_id: timestamp}}
-groups = set()  # لتتبع المجموعات (من الكود الأصلي)
+VERIFICATION_FILE = 'verification_status.json'
 register_channel_handlers(bot)
 
 # قائمة الصلاحيات الافتراضية مع أسمائها بالعربية
@@ -226,6 +224,21 @@ def save_banned_words():
     """حفظ الكلمات المحظورة إلى ملف JSON لضمان بقاء البيانات بعد إعادة التشغيل"""
     with open(BANNED_WORDS_FILE, "w", encoding="utf-8") as f:
         json.dump(banned_words, f, ensure_ascii=False, indent=4)
+
+
+def load_verification_status():
+    try:
+        with open(VERIFICATION_FILE, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {'mode': {}, 'pending': {}}
+
+def save_verification_status(status):
+    with open(VERIFICATION_FILE, 'w') as f:
+        json.dump(status, f)
+
+verification_status = load_verification_status()
+verification_mode = verification_status['mode']
         
 # ------ دوال تفعيل التقارير ------
 def save_mentions_data():
@@ -741,7 +754,6 @@ def call_developer(message):
     """
     bot.send_message(DEVELOPER_CHAT_ID, dev_message, parse_mode="HTML")
 
-
 @bot.message_handler(commands=['ropot'])
 def activate_verification(message):
     chat_id = message.chat.id
@@ -750,7 +762,7 @@ def activate_verification(message):
         return
     
     verification_mode[str(chat_id)] = True
-    logger.info(f"تم تفعيل وضع التحقق في المجموعة: {chat_id}")
+    save_verification_status({'mode': verification_mode, 'pending': {}})
     bot.reply_to(message, "✅ <b>تم تفعيل وضع التحقق للأعضاء الجدد!</b>\nالآن كل عضو جديد يجب أن يثبت أنه إنسان!", parse_mode="HTML")
 
 @bot.message_handler(commands=['closeropot'])
@@ -761,8 +773,7 @@ def deactivate_verification(message):
         return
     
     verification_mode[str(chat_id)] = False
-    pending_verifications.pop(str(chat_id), None)
-    logger.info(f"تم إيقاف وضع التحقق في المجموعة: {chat_id}")
+    save_verification_status({'mode': verification_mode, 'pending': {}})
     bot.reply_to(message, "🚫 <b>تم إيقاف وضع التحقق!</b>\nالأعضاء الجدد لن يُطلب منهم التحقق الآن.", parse_mode="HTML")
 
 @bot.message_handler(commands=['gbt'])
