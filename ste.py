@@ -225,7 +225,6 @@ def save_banned_words():
     with open(BANNED_WORDS_FILE, "w", encoding="utf-8") as f:
         json.dump(banned_words, f, ensure_ascii=False, indent=4)
 
-
 def load_verification_status():
     try:
         with open(VERIFICATION_FILE, 'r') as f:
@@ -237,8 +236,17 @@ def save_verification_status(status):
     with open(VERIFICATION_FILE, 'w') as f:
         json.dump(status, f)
 
+# تحميل الحالة عند البداية
 verification_status = load_verification_status()
 verification_mode = verification_status['mode']
+
+def is_user_admin(bot, chat_id, user_id):
+    try:
+        member = bot.get_chat_member(chat_id, user_id)
+        return member.status in ['administrator', 'creator']
+    except Exception:
+        return False
+
         
 # ------ دوال تفعيل التقارير ------
 def save_mentions_data():
@@ -754,27 +762,29 @@ def call_developer(message):
     """
     bot.send_message(DEVELOPER_CHAT_ID, dev_message, parse_mode="HTML")
 
+
 @bot.message_handler(commands=['ropot'])
-def activate_verification(message):
-    chat_id = message.chat.id
-    if not is_user_admin(bot, chat_id, message.from_user.id):
+def ropot(message):
+    if not is_user_admin(bot, message.chat.id, message.from_user.id):
         bot.reply_to(message, "❌ هذا الأمر للمشرفين فقط!")
         return
     
-    verification_mode[str(chat_id)] = True
+    chat_id = str(message.chat.id)
+    verification_mode[chat_id] = True
     save_verification_status({'mode': verification_mode, 'pending': {}})
-    bot.reply_to(message, "✅ <b>تم تفعيل وضع التحقق للأعضاء الجدد!</b>\nالآن كل عضو جديد يجب أن يثبت أنه إنسان!", parse_mode="HTML")
+    bot.reply_to(message, "✅ <b>تم تفعيل وضع التحقق للأعضاء الجدد!</b>\nالآن كل عضو جديد يجب أن يثبت أنه إنسان!", parse_mode='HTML')
 
 @bot.message_handler(commands=['closeropot'])
-def deactivate_verification(message):
-    chat_id = message.chat.id
-    if not is_user_admin(bot, chat_id, message.from_user.id):
+def closeropot(message):
+    if not is_user_admin(bot, message.chat.id, message.from_user.id):
         bot.reply_to(message, "❌ هذا الأمر للمشرفين فقط!")
         return
     
-    verification_mode[str(chat_id)] = False
+    chat_id = str(message.chat.id)
+    verification_mode[chat_id] = False
     save_verification_status({'mode': verification_mode, 'pending': {}})
-    bot.reply_to(message, "🚫 <b>تم إيقاف وضع التحقق!</b>\nالأعضاء الجدد لن يُطلب منهم التحقق الآن.", parse_mode="HTML")
+    bot.reply_to(message, "🚫 <b>تم إيقاف وضع التحقق!</b>\nالأعضاء الجدد لن يُطلب منهم التحقق الآن.", parse_mode='HTML')
+
 
 @bot.message_handler(commands=['gbt'])
 def handle_gbt_command(message):
