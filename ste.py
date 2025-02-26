@@ -64,6 +64,8 @@ DATA_FILE = "restart_data.json"
 report_groups = {}
 # القاموس العام لتخزين الكلمات لكل مجموعة بصيغة {"group_id": ["كلمة1", "كلمة2", ...]}
 banned_words = {}
+verification_mode = {}  # {chat_id: True/False}
+pending_verifications = {}  # {chat_id: {user_id: timestamp}}
 register_channel_handlers(bot)
 
 # قائمة الصلاحيات الافتراضية مع أسمائها بالعربية
@@ -735,7 +737,27 @@ def call_developer(message):
     """
     bot.send_message(DEVELOPER_CHAT_ID, dev_message, parse_mode="HTML")
 
+@bot.message_handler(commands=['ropot'])
+def activate_verification(message):
+    chat_id = message.chat.id
+    if not is_user_admin(bot, chat_id, message.from_user.id):
+        bot.reply_to(message, "❌ هذا الأمر للمشرفين فقط!")
+        return
+    
+    verification_mode[str(chat_id)] = True
+    bot.reply_to(message, "✅ <b>تم تفعيل وضع التحقق للأعضاء الجدد!</b>\nالآن كل عضو جديد يجب أن يثبت أنه إنسان!", parse_mode="HTML")
 
+# أمر إيقاف وضع التحقق
+@bot.message_handler(commands=['closeropot'])
+def deactivate_verification(message):
+    chat_id = message.chat.id
+    if not is_user_admin(bot, chat_id, message.from_user.id):
+        bot.reply_to(message, "❌ هذا الأمر للمشرفين فقط!")
+        return
+    
+    verification_mode[str(chat_id)] = False
+    pending_verifications.pop(str(chat_id), None)  # إزالة أي تحققات معلقة
+    bot.reply_to(message, "🚫 <b>تم إيقاف وضع التحقق!</b>\nالأعضاء الجدد لن يُطلب منهم التحقق الآن.", parse_mode="HTML")
 
 
 @bot.message_handler(commands=['gbt'])
@@ -2363,6 +2385,73 @@ def schedule_daily_report(group_id):
         threading.Timer(86400, send_report).start()  # إعادة التشغيل بعد 24 ساعة
     
     threading.Timer(86400, send_report).start()
+
+
+@bot.message_handler(content_types=['new_chat_members'])
+def verify_new_member(message):
+    chat_id = str(message.chat.id)
+    if not verification_mode.get(chat_id, False):  # إذا لم يكن الوضع مفعلاً
+        return
+
+    for member in message.new_chat_members:
+        user_id = str(member.id)
+        mention = f'<a href="tg://user?id={user_id}">{member.first_name}</a>'
+        
+        # إنشاء زر التفاعل
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("✅ أنا إنسان", callback_data=f"verify_{user_id}"))
+        
+        # إرسال رسالة التحقق
+        msg = bot.send_message(
+            chat_id,
+            f"👋 <b>أهلاً بك عزيزي {mention}!</b>\n"
+            "يرجى الضغط على 'أنا إنسان' خلال 3 دقائق للتحقق منك، وإلا سأظنك زومبي وسأطردك! 🧟‍♂️",
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+        
+        # تسجيل العضو للتحقق مع وقت الانتظار
+        pending_verifications.setdefault(chat_id, {})[user_id] = time.time()
+        
+        # جدولة الطرد بعد 3 دقائق (180 ثانية)
+        threading.Timer(180, check_verification_timeout, args=(chat_id, user_id, member.first_name)).start()
+
+# التحقق من انتهاء المهلة
+def check_verification_timeout(chat_id, user_id, user_name):
+    if chat_id in pending_verifications and user_id in pending_verifications[chat_id]:
+        try:
+            bot.ban_chat_member(chat_id, user_id)
+            mention = f'<a href="tg://user?id={user_id}">{user_name}</a>'
+            bot.send_message(
+                chat_id,
+                f"🚪 <b>تم طرد {mention}!</b>\n"
+                "تبين معنا إنه زومبي 🧟‍♂️ وليس بشر، لم يثبت إنسانيته في الوقت المحدد!",
+                parse_mode="HTML"
+            )
+            del pending_verifications[chat_id][user_id]
+        except Exception as e:
+            print(f"Error banning user: {e}")
+
+# التعامل مع ضغط الزر
+@bot.callback_query_handler(func=lambda call: call.data.startswith("verify_"))
+def handle_verification(call):
+    chat_id = str(call.message.chat.id)
+    user_id = call.data.split("_")[1]
+    
+    if chat_id in pending_verifications and user_id in pending_verifications[chat_id]:
+        if call.from_user.id == int(user_id):  # التأكد أن المستخدم نفسه ضغط
+            del pending_verifications[chat_id][user_id]  # إزالة العضو من قائمة الانتظار
+            bot.edit_message_text(
+                f"✅ <b>تم التحقق!</b>\n"
+                f"أهلاً بك <a href='tg://user?id={user_id}'>{call.from_user.first_name}</a>، أنت إنسان حقيقي! 🎉",
+                chat_id,
+                call.message.message_id,
+                parse_mode="HTML"
+            )
+        else:
+            bot.answer_callback_query(call.id, "🚫 هذا الزر ليس لك!", show_alert=True)
+    else:
+        bot.answer_callback_query(call.id, "⏰ انتهت مهلة التحقق أو تم التحقق مسبقًا!", show_alert=True)
 
 @bot.message_handler(commands=['report'])
 def manual_daily_report(message):
