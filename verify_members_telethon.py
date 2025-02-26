@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-from telethon.tl.types import ChatMemberUpdate
+from telethon.types import InlineKeyboardMarkup, InlineKeyboardButton
 import json
 import os
 import asyncio
@@ -9,8 +9,9 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# إعدادات Telethon
 api_id = 21290600
-api_hash = '2bd56b3e7715ec5862d6f856047caa95'  
+api_hash = '2bd56b3e7715ec5862d6f856047caa95'
 bot_token = '7588670003:AAEJSTkUqMYiNdjL17UsoM5O4a87YPiHhsc'  # نفس توكن البوت
 
 # إنشاء عميل Telethon
