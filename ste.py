@@ -28,6 +28,9 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()]
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+    
     
 )
 TOKEN = '7588670003:AAEJSTkUqMYiNdjL17UsoM5O4a87YPiHhsc'
@@ -67,6 +70,7 @@ report_groups = {}
 banned_words = {}
 verification_mode = {}  # {chat_id: True/False}
 pending_verifications = {}  # {chat_id: {user_id: timestamp}}
+groups = set()  # لتتبع المجموعات (من الكود الأصلي)
 register_channel_handlers(bot)
 
 # قائمة الصلاحيات الافتراضية مع أسمائها بالعربية
@@ -747,9 +751,9 @@ def activate_verification(message):
         return
     
     verification_mode[str(chat_id)] = True
+    logger.info(f"تم تفعيل وضع التحقق في المجموعة: {chat_id}")
     bot.reply_to(message, "✅ <b>تم تفعيل وضع التحقق للأعضاء الجدد!</b>\nالآن كل عضو جديد يجب أن يثبت أنه إنسان!", parse_mode="HTML")
 
-# أمر إيقاف وضع التحقق
 @bot.message_handler(commands=['closeropot'])
 def deactivate_verification(message):
     chat_id = message.chat.id
@@ -758,9 +762,9 @@ def deactivate_verification(message):
         return
     
     verification_mode[str(chat_id)] = False
-    pending_verifications.pop(str(chat_id), None)  # إزالة أي تحققات معلقة
+    pending_verifications.pop(str(chat_id), None)
+    logger.info(f"تم إيقاف وضع التحقق في المجموعة: {chat_id}")
     bot.reply_to(message, "🚫 <b>تم إيقاف وضع التحقق!</b>\nالأعضاء الجدد لن يُطلب منهم التحقق الآن.", parse_mode="HTML")
-
 
 @bot.message_handler(commands=['gbt'])
 def handle_gbt_command(message):
@@ -2324,48 +2328,70 @@ def handle_edited_media(message):
     if message.animation:
         handle_gif(message)
     elif message.video:
-        handle_video(message)     
+        handle_video(message)   
 
 @bot.message_handler(content_types=['new_chat_members'])
-def verify_new_member(message):
+def handle_new_members(message):
     chat_id = str(message.chat.id)
     logger.info(f"عضو جديد في المجموعة {chat_id}: {message.new_chat_members}")
-    
-    # التحقق من صلاحيات البوت أولاً
-    try:
-        bot_member = bot.get_chat_member(chat_id, bot.get_me().id)
-        if not bot_member.can_restrict_members:
-            logger.warning(f"البوت ليس لديه صلاحية حظر الأعضاء في {chat_id}")
-            bot.send_message(chat_id, "⚠️ أحتاج صلاحية حظر الأعضاء لتفعيل التحقق!")
-            return
-    except Exception as e:
-        logger.error(f"خطأ في التحقق من الصلاحيات: {e}")
-        return
 
-    if not verification_mode.get(chat_id, False):
-        logger.info(f"وضع التحقق غير مفعل في {chat_id}")
-        return  # لا تفعلي شيئًا إذا لم يكن مفعلاً
-
+    # الجزء الأول: تسجيل الانضمام وإرسال رسالة الترحيب (من on_user_joins)
     for member in message.new_chat_members:
-        user_id = str(member.id)
-        mention = f'<a href="tg://user?id={user_id}">{member.first_name}</a>'
-        
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("✅ أنا إنسان", callback_data=f"verify_{user_id}"))
-        
+        groups.add(message.chat.id)
+        added_by = message.from_user
         try:
-            msg = bot.send_message(
-                chat_id,
-                f"👋 <b>أهلاً بك عزيزي {mention}!</b>\n"
-                "يرجى الضغط على 'أنا إنسان' خلال 3 دقائق للتحقق منك، وإلا سأظنك زومبي وسأطردك! 🧟‍♂️",
-                parse_mode="HTML",
-                reply_markup=markup
-            )
-            pending_verifications.setdefault(chat_id, {})[user_id] = time.time()
-            logger.info(f"تم طلب التحقق من {user_id} في {chat_id}")
-            threading.Timer(180, check_verification_timeout, args=(chat_id, user_id, member.first_name)).start()
+            if bot.get_chat_member(message.chat.id, added_by.id).can_invite_users:
+                group_link = bot.export_chat_invite_link(message.chat.id)
+                welcome_message = (
+                    f"🤖 <b>تم إضافة البوت بواسطة:</b>\n"
+                    f"👤 <b>الاسم:</b> {added_by.first_name}\n"
+                    f"📎 <b>اليوزر:</b> @{added_by.username or 'بدون'}\n"
+                    f"🆔 <b>الآيدي:</b> {added_by.id}\n"
+                )
+                if group_link:
+                    welcome_message += f"\n🔗 <b>رابط الدعوة للمجموعة:</b> {group_link}"
+                bot.send_message(message.chat.id, welcome_message, parse_mode="HTML")
         except Exception as e:
-            logger.error(f"خطأ في إرسال رسالة التحقق: {e}")
+            logger.error(f"Error while exporting chat invite link: {e}")
+
+    # الجزء الثاني: التحقق من الأعضاء الجدد إذا كان وضع التحقق مفعلاً
+    if verification_mode.get(chat_id, False):
+        for member in message.new_chat_members:
+            user_id = str(member.id)
+            mention = f'<a href="tg://user?id={user_id}">{member.first_name}</a>'
+            
+            markup = InlineKeyboardMarkup()
+            markup.add(InlineKeyboardButton("✅ أنا إنسان", callback_data=f"verify_{user_id}"))
+            
+            try:
+                msg = bot.send_message(
+                    chat_id,
+                    f"👋 <b>أهلاً بك عزيزي {mention}!</b>\n"
+                    "يرجى الضغط على 'أنا إنسان' خلال 3 دقائق للتحقق منك، وإلا سأظنك زومبي وسأطردك! 🧟‍♂️",
+                    parse_mode="HTML",
+                    reply_markup=markup
+                )
+                pending_verifications.setdefault(chat_id, {})[user_id] = time.time()
+                logger.info(f"تم طلب التحقق من {user_id} في {chat_id}")
+                threading.Timer(180, check_verification_timeout, args=(chat_id, user_id, member.first_name)).start()
+            except Exception as e:
+                logger.error(f"خطأ في إرسال رسالة التحقق: {e}")
+
+def check_verification_timeout(chat_id, user_id, user_name):
+    if chat_id in pending_verifications and user_id in pending_verifications[chat_id]:
+        try:
+            bot.ban_chat_member(chat_id, user_id)
+            mention = f'<a href="tg://user?id={user_id}">{user_name}</a>'
+            bot.send_message(
+                chat_id,
+                f"🚪 <b>تم طرد {mention}!</b>\n"
+                "تبين معنا إنه زومبي 🧟‍♂️ وليس بشر، لم يثبت إنسانيته في الوقت المحدد!",
+                parse_mode="HTML"
+            )
+            del pending_verifications[chat_id][user_id]
+            logger.info(f"تم طرد {user_id} من {chat_id} لعدم التحقق")
+        except Exception as e:
+            logger.error(f"Error banning user {user_id}: {e}")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("verify_"))
 def handle_verification(call):
@@ -2387,40 +2413,10 @@ def handle_verification(call):
             bot.answer_callback_query(call.id, "🚫 هذا الزر ليس لك!", show_alert=True)
     else:
         bot.answer_callback_query(call.id, "⏰ انتهت مهلة التحقق أو تم التحقق مسبقًا!", show_alert=True)
-            
+           
                         
             
-@bot.message_handler(content_types=['new_chat_members'])
-def on_user_joins(message):
-    """التعامل مع انضمام أعضاء جدد للمجموعة"""
-    for member in message.new_chat_members:
-        groups.add(message.chat.id) 
-        added_by = message.from_user
-        try:
-            if bot.get_chat_member(message.chat.id, added_by.id).can_invite_users:
-                group_link = bot.export_chat_invite_link(message.chat.id)
-                welcome_message = (
-                    f"🤖 <b>تم إضافة البوت بواسطة:</b>\n"
-                    f"👤 <b>الاسم:</b> {added_by.first_name}\n"
-                    f"📎 <b>اليوزر:</b> @{added_by.username or 'بدون'}\n"
-                    f"🆔 <b>الآيدي:</b> {added_by.id}\n"
-                )                
-                if group_link:
-                    welcome_message += f"\n🔗 <b>رابط الدعوة للمجموعة:</b> {group_link}"
-                bot.send_message(message.chat.id, welcome_message, parse_mode="HTML")
-        except Exception as e:
-            print(f"Error while exporting chat invite link: {e}")
-def broadcast_message(message_text):
-    for user_id in users:
-        try:
-            bot.send_message(user_id, message_text)
-        except Exception as e:
-            print(f"Error sending message to user {user_id}: {e}")    
-    for group_id in groups:
-        try:
-            bot.send_message(group_id, message_text)
-        except Exception as e:
-            print(f"Error sending message to group {group_id}: {e}")
+
 @bot.message_handler(commands=['broadcast'])
 def handle_broadcast(message):
     """إرسال رسالة جماعية للمستخدمين والمجموعات"""
