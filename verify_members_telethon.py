@@ -38,20 +38,26 @@ pending_verifications = verification_status['pending']  # {chat_id: {user_id: ti
 # التعامل مع انضمام الأعضاء الجدد
 @client.on(events.ChatAction)
 async def handle_new_member(event):
+    # إعادة تحميل الحالة في كل حدث للتأكد من التحديث
+    global verification_mode, pending_verifications
+    verification_status = load_verification_status()
+    verification_mode = verification_status['mode']
+    
     chat_id = str(event.chat_id)
+    logger.info(f"حدث ChatAction في {chat_id}: user_added={event.user_added}, user_joined={event.user_joined}")
+    
     if not verification_mode.get(chat_id, False):
         logger.info(f"وضع التحقق غير مفعل في {chat_id}")
         return
 
     if event.user_added or event.user_joined:
         user_id = str(event.user_id)
-        user = await client.get_entity(event.user_id)
-        mention = f'<a href="tg://user?id={user_id}">{user.first_name}</a>'
-        
-        # إنشاء زر تفاعلي باستخدام Button.inline
-        buttons = [[Button.inline("✅ أنا إنسان", data=f"verify_{user_id}")]]
-        
         try:
+            user = await client.get_entity(event.user_id)
+            mention = f'<a href="tg://user?id={user_id}">{user.first_name}</a>'
+            
+            buttons = [[Button.inline("✅ أنا إنسان", data=f"verify_{user_id}")]]
+            
             msg = await client.send_message(
                 chat_id,
                 f"👋 <b>أهلاً بك عزيزي {mention}!</b>\n"
