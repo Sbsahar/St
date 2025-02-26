@@ -737,6 +737,8 @@ def call_developer(message):
 <b>الرابط:</b> {group_link}
     """
     bot.send_message(DEVELOPER_CHAT_ID, dev_message, parse_mode="HTML")
+
+
 @bot.message_handler(commands=['ropot'])
 def activate_verification(message):
     chat_id = message.chat.id
@@ -745,9 +747,9 @@ def activate_verification(message):
         return
     
     verification_mode[str(chat_id)] = True
-    logger.info(f"تم تفعيل وضع التحقق في المجموعة: {chat_id}")
     bot.reply_to(message, "✅ <b>تم تفعيل وضع التحقق للأعضاء الجدد!</b>\nالآن كل عضو جديد يجب أن يثبت أنه إنسان!", parse_mode="HTML")
 
+# أمر إيقاف وضع التحقق
 @bot.message_handler(commands=['closeropot'])
 def deactivate_verification(message):
     chat_id = message.chat.id
@@ -756,8 +758,7 @@ def deactivate_verification(message):
         return
     
     verification_mode[str(chat_id)] = False
-    pending_verifications.pop(str(chat_id), None)
-    logger.info(f"تم إيقاف وضع التحقق في المجموعة: {chat_id}")
+    pending_verifications.pop(str(chat_id), None)  # إزالة أي تحققات معلقة
     bot.reply_to(message, "🚫 <b>تم إيقاف وضع التحقق!</b>\nالأعضاء الجدد لن يُطلب منهم التحقق الآن.", parse_mode="HTML")
 
 
