@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events
-from telethon.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telethon.tl.custom import InlineKeyboardMarkup, InlineKeyboardButton
 import json
 import os
 import asyncio
@@ -49,15 +49,14 @@ async def handle_new_member(event):
         user = await client.get_entity(event.user_id)
         mention = f'<a href="tg://user?id={user_id}">{user.first_name}</a>'
         
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("✅ أنا إنسان", callback_data=f"verify_{user_id}"))
+        markup = InlineKeyboardMarkup([[InlineKeyboardButton("✅ أنا إنسان", callback_data=f"verify_{user_id}")]])
         
         try:
             msg = await client.send_message(
                 chat_id,
                 f"👋 <b>أهلاً بك عزيزي {mention}!</b>\n"
                 "يرجى الضغط على 'أنا إنسان' خلال 3 دقائق للتحقق منك، وإلا سأظنك زومبي وسأطردك! 🧟‍♂️",
-                parse_mode="HTML",
+                parse_mode='html',
                 buttons=markup
             )
             pending_verifications.setdefault(chat_id, {})[user_id] = time.time()
@@ -79,7 +78,7 @@ async def check_verification_timeout(chat_id, user_id, user_name):
                 chat_id,
                 f"🚪 <b>تم طرد {mention}!</b>\n"
                 "تبين معنا إنه زومبي 🧟‍♂️ وليس بشر، لم يثبت إنسانيته في الوقت المحدد!",
-                parse_mode="HTML"
+                parse_mode='html'
             )
             del pending_verifications[chat_id][user_id]
             save_verification_status({'mode': verification_mode, 'pending': pending_verifications})
@@ -99,7 +98,7 @@ async def handle_verification(event):
             await event.edit(
                 f"✅ <b>تم التحقق!</b>\n"
                 f"أهلاً بك <a href='tg://user?id={user_id}'>{event.sender.first_name}</a>، أنت إنسان حقيقي! 🎉",
-                parse_mode="HTML"
+                parse_mode='html'
             )
             save_verification_status({'mode': verification_mode, 'pending': pending_verifications})
             logger.info(f"تم التحقق من {user_id} في {chat_id}")
