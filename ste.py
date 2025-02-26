@@ -23,12 +23,11 @@ import json
 from telebot.types import BotCommand
 import logging
 from telebot.types import ChatMemberUpdated
-# إعدادات التسجيل
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()]
-logging.basicConfig(level=logging.INFO)
+)
 logger = logging.getLogger(__name__)
     
     
