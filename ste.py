@@ -22,7 +22,7 @@ import json
 from telebot.types import BotCommand
 import logging
 from telebot.types import ChatMemberUpdated
-from ramadan import setup_handlers, ramadan_broadcast, load_ramadan_groups, check_existing_channels
+from ramadan import setup_handlers, ramadan_broadcast, load_ramadan_groups
 import threading
 logging.basicConfig(
     level=logging.INFO,
@@ -2775,8 +2775,8 @@ def send_auto_reply(target_msg, original_message=None):
         print(f"Error: {e}")
 
 
+# قبل bot.polling()
 load_ramadan_groups()
-check_existing_channels(bot)  # التحقق من القنوات الموجودة عند البدء
 thread = threading.Thread(target=ramadan_broadcast, args=(bot,), daemon=True)
 thread.start()
 
