@@ -88,7 +88,7 @@ def ramadan_broadcast(bot):
 
 def setup_handlers(bot):
     # أوامر للمجموعات
-    @bot.message_handler(commands=['Quran'])
+    @bot.message_handler(commands=['quran'])
     def start_ramadan(message):
         chat_id = message.chat.id
         if message.chat.type not in ['group', 'supergroup']:
@@ -108,7 +108,7 @@ def setup_handlers(bot):
         ramadan_groups[str(chat_id)] = 1
         save_ramadan_groups()
 
-    @bot.message_handler(commands=['stop_Quran'])
+    @bot.message_handler(commands=['stop_quran'])
     def stop_ramadan(message):
         chat_id = message.chat.id
         if message.chat.type not in ['group', 'supergroup']:
