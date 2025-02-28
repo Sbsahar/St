@@ -1599,7 +1599,7 @@ def back_to_settings(call):
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton("🛡️ إعدادات الحماية", callback_data=f"settings_protection_{original_user_id}"))
     keyboard.add(InlineKeyboardButton("⚙️ إعدادات المجموعة", callback_data=f"settings_group_{original_user_id}"))
-    keyboard.add(InlineKeyboardButton("💬 الردود والمنشن", callback_data=f"settings_replies_{original_user_id}"))
+    keyboard.add(InlineKeyboardButton("💬 الردود والأذكار", callback_data=f"settings_replies_{original_user_id}"))
     keyboard.add(InlineKeyboardButton("📥 التحميل من السوشيال ميديا", callback_data=f"settings_downloads_{original_user_id}"))
     keyboard.add(InlineKeyboardButton("🔍 الحماية المتقدمة والكاشف الذكي", callback_data=f"settings_detection_{original_user_id}"))
     keyboard.add(InlineKeyboardButton("المطور 👩🏻‍💻", url="https://t.me/SB_SAHAR"))
