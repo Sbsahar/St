@@ -1552,9 +1552,11 @@ def handle_settings_callback(call):
         )
     elif setting_type == "settings_replies":
         text = (
-            "<b>💬 إعدادات الردود والمنشن</b>\n\n"
+            "<b>💬 إعدادات الردود والأذكار</b>\n\n"
             "• <code>/ad</code> - لإضافة رد لكلمة معينة بالمجموعة\n"
             "• <code>/adde</code> - لحذف رد معين"
+            "• <code>/Quran</code> - تفعيل الأذكار الصوتية في المجموعة"
+            "• <code>/stop_Qura</code> -  إيقاف الأذكار الصوتية"
         )
     elif setting_type == "settings_downloads":
         text = (
