@@ -1556,7 +1556,7 @@ def handle_settings_callback(call):
             "• <code>/ad</code> - لإضافة رد لكلمة معينة بالمجموعة\n"
             "• <code>/adde</code> - لحذف رد معين"
             "• <code>/Quran</code> - تفعيل الأذكار الصوتية في المجموعة\n"
-            "• <code>/stop_Qura</code> -  إيقاف الأذكار الصوتية\n"
+            "• <code>/stop_Quran</code> -  إيقاف الأذكار الصوتية\n"
         )
     elif setting_type == "settings_downloads":
         text = (
