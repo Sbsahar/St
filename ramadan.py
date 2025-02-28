@@ -87,7 +87,7 @@ def ramadan_broadcast(bot):
         time.sleep(1200)  # 20 دقيقة
 
 def setup_handlers(bot):
-    # أوامر للمجموعات فقط
+    # أوامر للمجموعات
     @bot.message_handler(commands=['Quran'])
     def start_ramadan(message):
         chat_id = message.chat.id
@@ -128,8 +128,8 @@ def setup_handlers(bot):
         save_ramadan_groups()
         bot.reply_to(message, "✅ تم إيقاف النشر التلقائي للآيات القرآنية.")
 
-    # أمر لتفعيل النشر في القنوات يدويًا
-    @bot.message_handler(commands=['start_channel_quran'])
+    # أمر لتفعيل النشر في القنوات
+    @bot.message_handler(commands=['start_quran'])
     def start_channel_quran(message):
         chat_id = message.chat.id
         if message.chat.type != 'channel':
@@ -152,6 +152,32 @@ def setup_handlers(bot):
             print(f"تم تفعيل النشر يدويًا في القناة: {chat_id}")
         except Exception as e:
             print(f"فشل تفعيل النشر في القناة {chat_id}: {e}")
+            bot.send_message(chat_id, f"❌ حدث خطأ: {e}")
+
+    # أمر لإيقاف النشر في القنوات
+    @bot.message_handler(commands=['stop_qurancl'])
+    def stop_channel_quran(message):
+        chat_id = message.chat.id
+        if message.chat.type != 'channel':
+            bot.send_message(chat_id, "❌ هذا الأمر متاح فقط في القنوات.")
+            return
+        
+        try:
+            me = bot.get_chat_member(chat_id, bot.get_me().id)
+            if me.status != 'administrator':
+                bot.send_message(chat_id, "❌ يجب أن أكون مشرفًا لإيقاف النشر.")
+                return
+            
+            if str(chat_id) not in ramadan_groups:
+                bot.send_message(chat_id, "⚠️ النشر التلقائي غير مفعل في هذه القناة.")
+                return
+            
+            del ramadan_groups[str(chat_id)]
+            save_ramadan_groups()
+            bot.send_message(chat_id, "✅ تم إيقاف النشر التلقائي للآيات القرآنية.")
+            print(f"تم إيقاف النشر يدويًا في القناة: {chat_id}")
+        except Exception as e:
+            print(f"فشل إيقاف النشر في القناة {chat_id}: {e}")
             bot.send_message(chat_id, f"❌ حدث خطأ: {e}")
 
     # التعامل مع إضافة البوت إلى قناة أو مجموعة
