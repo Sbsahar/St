@@ -70,7 +70,7 @@ report_groups = {}
 banned_words = {}
 VERIFICATION_FILE = 'verification_status.json'
 register_channel_handlers(bot)
-load_ramadan_groups()
+setup_handlers(bot)
 
 # قائمة الصلاحيات الافتراضية مع أسمائها بالعربية
 PERMISSION_NAMES = {
