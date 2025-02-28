@@ -84,7 +84,7 @@ def ramadan_broadcast(bot):
                 print(f"خطأ في نشر الآية لـ {chat_id}: {e}")
                 time.sleep(10)  # تأخير قصير في حالة الخطأ
         
-        time.sleep(300)  # 5 دقائق بين كل جولة
+        time.sleep(1200)  
 
 def check_existing_channels(bot):
     """التحقق من القنوات التي ينتمي إليها البوت عند التشغيل"""
