@@ -154,6 +154,32 @@ def setup_handlers(bot):
             print(f"فشل تفعيل النشر في القناة {chat_id}: {e}")
             bot.send_message(chat_id, f"❌ حدث خطأ: {e}")
 
+    # أمر لإيقاف النشر في القنوات
+    @bot.message_handler(commands=['stop_qurancl'])
+    def stop_channel_quran(message):
+        chat_id = message.chat.id
+        if message.chat.type != 'channel':
+            bot.send_message(chat_id, "❌ هذا الأمر متاح فقط في القنوات.")
+            return
+        
+        try:
+            me = bot.get_chat_member(chat_id, bot.get_me().id)
+            if me.status != 'administrator':
+                bot.send_message(chat_id, "❌ يجب أن أكون مشرفًا لإيقاف النشر.")
+                return
+            
+            if str(chat_id) not in ramadan_groups:
+                bot.send_message(chat_id, "⚠️ النشر التلقائي غير مفعل في هذه القناة.")
+                return
+            
+            del ramadan_groups[str(chat_id)]
+            save_ramadan_groups()
+            bot.send_message(chat_id, "✅ تم إيقاف النشر التلقائي للآيات القرآنية.")
+            print(f"تم إيقاف النشر يدويًا في القناة: {chat_id}")
+        except Exception as e:
+            print(f"فشل إيقاف النشر في القناة {chat_id}: {e}")
+            bot.send_message(chat_id, f"❌ حدث خطأ: {e}")
+
     # التعامل مع إضافة البوت إلى قناة أو مجموعة
     @bot.chat_member_handler()
     def handle_new_chat_member(update: ChatMemberUpdated):
@@ -166,14 +192,12 @@ def setup_handlers(bot):
                 return
             
             try:
-                bot.send_message(chat_id, "✅ تم إضافة البوت إلى القناة. سيبدأ النشر التلقائي للآيات القرآنية كل 20 دقيقة.")
-                ramadan_groups[chat_id] = 1
-                save_ramadan_groups()
-                print(f"تم تفعيل النشر في القناة: {chat.title} ({chat_id})")
+                bot.send_message(chat_id, "✅ تم إضافة البوت إلى القناة. استخدم /start_quran لتفعيل النشر التلقائي للآيات القرآنية.")
+                print(f"تم اكتشاف القناة: {chat.title} ({chat_id}). في انتظار تفعيل يدوي.")
             except Exception as e:
-                print(f"فشل تفعيل النشر في القناة {chat_id}: {e}")
+                print(f"فشل إرسال رسالة ترحيب في القناة {chat_id}: {e}")
 
-    # التعامل مع أي منشور في القناة (بما في ذلك الأوامر)
+    # التعامل مع المنشورات في القناة (للأوامر فقط)
     @bot.channel_post_handler()
     def handle_channel_post(message):
         chat_id = str(message.chat.id)
@@ -186,7 +210,7 @@ def setup_handlers(bot):
                 print(f"البوت ليس لديه صلاحية النشر في القناة {chat_id}")
                 return
 
-            # التحقق من الأوامر داخل القناة
+            # التحقق من الأوامر فقط، بدون تفعيل تلقائي
             if message.text:
                 if message.text.startswith('/start_quran'):
                     if chat_id in ramadan_groups:
@@ -205,13 +229,6 @@ def setup_handlers(bot):
                         save_ramadan_groups()
                         bot.send_message(chat_id, "✅ تم إيقاف النشر التلقائي للآيات القرآنية.")
                         print(f"تم إيقاف النشر في القناة: {message.chat.title} ({chat_id})")
-                
-                # تفعيل النشر تلقائيًا عند أي منشور إذا لم يكن مفعلاً
-                elif chat_id not in ramadan_groups:
-                    ramadan_groups[chat_id] = 1
-                    save_ramadan_groups()
-                    bot.send_message(chat_id, "✅ تم الكشف عن القناة. سيبدأ النشر التلقائي للآيات القرآنية كل 20 دقيقة.")
-                    print(f"تم تفعيل النشر في القناة: {message.chat.title} ({chat_id})")
 
         except Exception as e:
             print(f"فشل في التحقق من حالة البوت أو معالجة المنشور في القناة {chat_id}: {e}")
