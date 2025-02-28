@@ -22,6 +22,8 @@ import json
 from telebot.types import BotCommand
 import logging
 from telebot.types import ChatMemberUpdated
+from ramadan import setup_handlers, ramadan_broadcast, load_ramadan_groups
+import threading
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -68,6 +70,7 @@ report_groups = {}
 banned_words = {}
 VERIFICATION_FILE = 'verification_status.json'
 register_channel_handlers(bot)
+load_ramadan_groups()
 
 # قائمة الصلاحيات الافتراضية مع أسمائها بالعربية
 PERMISSION_NAMES = {
@@ -2768,6 +2771,11 @@ def send_auto_reply(target_msg, original_message=None):
                 bot.send_message(chat_id, "❌ نوع الرد غير مدعوم", reply_to_message_id=reply_to_id)
     except Exception as e:
         print(f"Error: {e}")
+
+
+load_ramadan_groups()  # تحميل المجموعات المفعلة
+thread = threading.Thread(target=ramadan_broadcast, args=(bot,), daemon=True)
+thread.start()
 
 
 
