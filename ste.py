@@ -1500,7 +1500,7 @@ def settings(message):
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton("🛡️ إعدادات الحماية", callback_data=f"settings_protection_{user_id}"))
     keyboard.add(InlineKeyboardButton("⚙️ إعدادات المجموعة", callback_data=f"settings_group_{user_id}"))
-    keyboard.add(InlineKeyboardButton("💬 الردود والمنشن", callback_data=f"settings_replies_{user_id}"))
+    keyboard.add(InlineKeyboardButton("💬 الردود والأذكار", callback_data=f"settings_replies_{user_id}"))
     keyboard.add(InlineKeyboardButton("📥 التحميل من السوشيال ميديا", callback_data=f"settings_downloads_{user_id}"))
     keyboard.add(InlineKeyboardButton("🔍 الحماية المتقدمة والكاشف الذكي", callback_data=f"settings_detection_{user_id}"))
     keyboard.add(InlineKeyboardButton("قناة التحديثات🦅", url="https://t.me/iizz2z"))
@@ -1555,8 +1555,8 @@ def handle_settings_callback(call):
             "<b>💬 إعدادات الردود والأذكار</b>\n\n"
             "• <code>/ad</code> - لإضافة رد لكلمة معينة بالمجموعة\n"
             "• <code>/adde</code> - لحذف رد معين"
-            "• <code>/Quran</code> - تفعيل الأذكار الصوتية في المجموعة"
-            "• <code>/stop_Qura</code> -  إيقاف الأذكار الصوتية"
+            "• <code>/Quran</code> - تفعيل الأذكار الصوتية في المجموعة\n"
+            "• <code>/stop_Qura</code> -  إيقاف الأذكار الصوتية\n"
         )
     elif setting_type == "settings_downloads":
         text = (
