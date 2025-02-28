@@ -86,7 +86,7 @@ def ramadan_broadcast(bot):
         time.sleep(300)  # 5 دقائق بين كل جولة
 
 def setup_handlers(bot):
-    @bot.message_handler(commands=['ramadan'])
+    @bot.message_handler(commands=['Quran'])
     def start_ramadan(message):
         chat_id = message.chat.id
         if message.chat.type not in ['group', 'supergroup']:
@@ -103,11 +103,11 @@ def setup_handlers(bot):
             bot.reply_to(message, "⚠️ النشر التلقائي للآيات مفعل بالفعل في هذه المجموعة.")
             return
         
-        bot.reply_to(message, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 5 دقائق بمناسبة شهر رمضان.")
+        bot.reply_to(message, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 5 دقائق ")
         ramadan_groups[str(chat_id)] = 1
         save_ramadan_groups()
 
-    @bot.message_handler(commands=['stop_ramadan'])
+    @bot.message_handler(commands=['stop_Quran'])
     def stop_ramadan(message):
         chat_id = message.chat.id
         if message.chat.type not in ['group', 'supergroup']:
