@@ -4,9 +4,9 @@ import subprocess
 import json
 from requests import get
 
-# إعدادات قاعدة بيانات لحفظ حالة المجموعات المفعلة لنشر الآيات
+# إعدادات قاعدة بيانات لحفظ حالة المجموعات والقنوات المفعلة لنشر الآيات
 RAMADAN_GROUPS_FILE = "ramadan_groups.json"
-ramadan_groups = {}  # {group_id: current_ayah_number}
+ramadan_groups = {}  # {chat_id: current_ayah_number} للمجموعات والقنوات
 
 def load_ramadan_groups():
     global ramadan_groups
@@ -49,7 +49,7 @@ def en_ar_nums(text):
 def ramadan_broadcast(bot):
     while True:
         if not ramadan_groups:
-            time.sleep(60)  # الانتظار إذا لم تكن هناك مجموعات مفعلة
+            time.sleep(60)  # الانتظار إذا لم تكن هناك مجموعات أو قنوات مفعلة
             continue
         
         for chat_id in list(ramadan_groups.keys()):
@@ -71,7 +71,7 @@ def ramadan_broadcast(bot):
                         ayah,
                         en_ar_nums(x.json()['data']['numberInSurah']),
                         surah_name,
-                        en_ar_nums(x.json()["data"]["juz"]),  # بدون num2words
+                        en_ar_nums(x.json()["data"]["juz"]),
                         en_ar_nums(x.json()["data"]["page"]),
                     )
                     bot.send_voice(chat_id, voice_file, caption=message)
@@ -80,12 +80,13 @@ def ramadan_broadcast(bot):
                     ramadan_groups[chat_id] += 1
                     save_ramadan_groups()
             except Exception as e:
-                print(f"خطأ في نشر الآية للمجموعة {chat_id}: {e}")
-                time.sleep(10)  # تأخير قصير في حالة الخطأ لتجنب الحمل الزائد
+                print(f"خطأ في نشر الآية لـ {chat_id}: {e}")
+                time.sleep(10)  # تأخير قصير في حالة الخطأ
         
         time.sleep(300)  # 5 دقائق بين كل جولة
 
 def setup_handlers(bot):
+    # أوامر للمجموعات فقط
     @bot.message_handler(commands=['Quran'])
     def start_ramadan(message):
         chat_id = message.chat.id
@@ -93,7 +94,6 @@ def setup_handlers(bot):
             bot.reply_to(message, "❌ هذا الأمر متاح فقط في المجموعات.")
             return
         
-        # استدعاء دالة التحقق من المشرف من ste.py
         from ste import is_user_admin
         if not is_user_admin(bot, chat_id, message.from_user.id):
             bot.reply_to(message, "❌ هذا الأمر متاح للمشرفين فقط.")
@@ -103,7 +103,7 @@ def setup_handlers(bot):
             bot.reply_to(message, "⚠️ النشر التلقائي للآيات مفعل بالفعل في هذه المجموعة.")
             return
         
-        bot.reply_to(message, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 5 دقائق ")
+        bot.reply_to(message, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 5 دقائق.")
         ramadan_groups[str(chat_id)] = 1
         save_ramadan_groups()
 
@@ -126,3 +126,23 @@ def setup_handlers(bot):
         del ramadan_groups[str(chat_id)]
         save_ramadan_groups()
         bot.reply_to(message, "✅ تم إيقاف النشر التلقائي للآيات القرآنية.")
+
+    # التعامل مع إضافة البوت إلى قناة
+    @bot.chat_member_handler()
+    def handle_new_chat_member(update):
+        from telebot.types import ChatMemberUpdated
+        if not isinstance(update, ChatMemberUpdated):
+            return
+        
+        new_member = update.new_chat_member
+        chat_id = update.chat.id
+        
+        # التحقق مما إذا كان البوت قد أُضيف إلى قناة
+        if new_member.user.id == bot.get_me().id and new_member.status in ['administrator', 'member'] and update.chat.type == 'channel':
+            if str(chat_id) in ramadan_groups:
+                return  # تجنب التكرار إذا كان موجودًا بالفعل
+            
+            # تفعيل النشر التلقائي في القناة
+            ramadan_groups[str(chat_id)] = 1
+            save_ramadan_groups()
+            bot.send_message(chat_id, "✅ تم إضافة البوت إلى القناة. سيبدأ النشر التلقائي للآيات القرآنية كل 5 دقائق.")
