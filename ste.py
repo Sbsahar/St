@@ -2770,12 +2770,6 @@ def send_auto_reply(target_msg, original_message=None):
         print(f"Error: {e}")
 
 
-# تحميل المجموعات المفعلة عند بدء البوت واستئناف النشر
-load_ramadan_groups()
-for chat_id in ramadan_groups:
-    thread = threading.Thread(target=ramadan_broadcast, args=(int(chat_id),))
-    thread.start()
-    ramadan_threads[chat_id] = thread
 
 
 
