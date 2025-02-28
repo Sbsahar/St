@@ -1556,8 +1556,9 @@ def handle_settings_callback(call):
             "• <code>/ad</code> - لإضافة رد لكلمة معينة بالمجموعة\n"
             "• <code>/adde</code> - لحذف رد معين"
             "• <code>/Quran</code> - تفعيل الأذكار الصوتية في المجموعة\n"
-            "• <code>/stop_Quran</code> -  إيقاف الأذكار الصوتية\n"
-            "• <code>/start_channel_quran</code> - تفعيل النشر التلقائي للقرأن الكريم في القنوات ارفع البوت مشرف اعطه صلاحيات اكتب في قناتك هذا الامر \n"
+            "• <code>/stop_quran</code> -  إيقاف الأذكار الصوتية\n"
+            "• <code>/start_quran</code> - تفعيل النشر التلقائي للقرأن الكريم في القنوات ارفع البوت مشرف اعطه صلاحيات اكتب في قناتك هذا الامر \n"
+            "• <code>/stop_qurancl</code> - لايقاف النشر التلقائي للقرأن في القناة اكتب في القناة\n"
         )
     elif setting_type == "settings_downloads":
         text = (
