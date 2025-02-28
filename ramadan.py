@@ -3,7 +3,6 @@ import os
 import subprocess
 import json
 from requests import get
-from num2words import num2words
 
 # إعدادات قاعدة بيانات لحفظ حالة المجموعات المفعلة لنشر الآيات
 RAMADAN_GROUPS_FILE = "ramadan_groups.json"
@@ -50,7 +49,7 @@ def en_ar_nums(text):
 def ramadan_broadcast(bot):
     while True:
         if not ramadan_groups:
-            time.sleep(60)
+            time.sleep(60)  # الانتظار إذا لم تكن هناك مجموعات مفعلة
             continue
         
         for chat_id in list(ramadan_groups.keys()):
@@ -63,7 +62,7 @@ def ramadan_broadcast(bot):
                     continue
                 
                 x = get(f"http://api.alquran.cloud/v1/ayah/{current_ayah}/ar.asad")
-                if x.json():
+                if x.status_code == 200 and x.json():
                     ayah = x.json()["data"]["text"]
                     surah_name = x.json()["data"]["surah"]["name"]
                     as_audio = get_ayah(current_ayah)
@@ -72,8 +71,8 @@ def ramadan_broadcast(bot):
                         ayah,
                         en_ar_nums(x.json()['data']['numberInSurah']),
                         surah_name,
-                        num2words(x.json()["data"]["juz"], lang="ar", to="year"),
-                        num2words(x.json()["data"]["page"], lang="ar", to="year"),
+                        en_ar_nums(x.json()["data"]["juz"]),  # بدون num2words
+                        en_ar_nums(x.json()["data"]["page"]),
                     )
                     bot.send_voice(chat_id, voice_file, caption=message)
                     os.remove(as_audio)
@@ -82,8 +81,9 @@ def ramadan_broadcast(bot):
                     save_ramadan_groups()
             except Exception as e:
                 print(f"خطأ في نشر الآية للمجموعة {chat_id}: {e}")
+                time.sleep(10)  # تأخير قصير في حالة الخطأ لتجنب الحمل الزائد
         
-        time.sleep(300)  # 5 دقائق
+        time.sleep(300)  # 5 دقائق بين كل جولة
 
 def setup_handlers(bot):
     @bot.message_handler(commands=['ramadan'])
@@ -93,7 +93,8 @@ def setup_handlers(bot):
             bot.reply_to(message, "❌ هذا الأمر متاح فقط في المجموعات.")
             return
         
-        from ste import is_user_admin  # استدعاء دالة التحقق من المشرف
+        # استدعاء دالة التحقق من المشرف من ste.py
+        from ste import is_user_admin
         if not is_user_admin(bot, chat_id, message.from_user.id):
             bot.reply_to(message, "❌ هذا الأمر متاح للمشرفين فقط.")
             return
