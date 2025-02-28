@@ -1,0 +1,127 @@
+import time
+import os
+import subprocess
+import json
+from requests import get
+from num2words import num2words
+
+# إعدادات قاعدة بيانات لحفظ حالة المجموعات المفعلة لنشر الآيات
+RAMADAN_GROUPS_FILE = "ramadan_groups.json"
+ramadan_groups = {}  # {group_id: current_ayah_number}
+
+def load_ramadan_groups():
+    global ramadan_groups
+    try:
+        with open(RAMADAN_GROUPS_FILE, "r", encoding="utf-8") as f:
+            ramadan_groups = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        ramadan_groups = {}
+
+def save_ramadan_groups():
+    with open(RAMADAN_GROUPS_FILE, "w", encoding="utf-8") as f:
+        json.dump(ramadan_groups, f, ensure_ascii=False, indent=4)
+
+def get_ayah(num: int) -> str:
+    num = int(num)
+    url = 'https://cdn.islamic.network/quran/audio/128/ar.alafasy/'
+    if 1 <= num <= 6236:
+        url = url + f'{num}.mp3'
+    x = get(url)
+    with open(f"sura{num}.mp3", "wb") as f:
+        f.write(x.content)
+    filename = os.path.splitext(f'sura{num}.mp3')[0]
+    audio_path_ogg = filename + '.ogg'
+    subprocess.run(["ffmpeg", '-i', f'sura{num}.mp3', '-vn', '-acodec', 'libopus', '-b:a', '16k', audio_path_ogg, '-y'], stderr=subprocess.PIPE, encoding='utf-8')
+    with open(audio_path_ogg, 'rb') as f:
+        data = f.read()
+    os.remove(f"sura{num}.mp3")
+    return audio_path_ogg
+
+def en_ar_nums(text):
+    arabic_numbers = {'0': '٠', '1': '١', '2': '٢', '3': '٣', '4': '٤', '5': '٥', '6': '٦', '7': '٧', '8': '٨', '9': '٩'}
+    result = ''
+    for char in str(text):
+        if char.isdigit():
+            result += arabic_numbers[char]
+        else:
+            result += char
+    return result
+
+def ramadan_broadcast(bot):
+    while True:
+        if not ramadan_groups:
+            time.sleep(60)
+            continue
+        
+        for chat_id in list(ramadan_groups.keys()):
+            try:
+                current_ayah = ramadan_groups[chat_id]
+                if current_ayah > 6236:
+                    del ramadan_groups[chat_id]
+                    save_ramadan_groups()
+                    bot.send_message(chat_id, "✅ تم الانتهاء من نشر القرآن الكريم.")
+                    continue
+                
+                x = get(f"http://api.alquran.cloud/v1/ayah/{current_ayah}/ar.asad")
+                if x.json():
+                    ayah = x.json()["data"]["text"]
+                    surah_name = x.json()["data"]["surah"]["name"]
+                    as_audio = get_ayah(current_ayah)
+                    voice_file = open(as_audio, "rb")
+                    message = ("{} ﴿{}﴾" '\n\n - {} " الجُزء {}، صفحة {}"').format(
+                        ayah,
+                        en_ar_nums(x.json()['data']['numberInSurah']),
+                        surah_name,
+                        num2words(x.json()["data"]["juz"], lang="ar", to="year"),
+                        num2words(x.json()["data"]["page"], lang="ar", to="year"),
+                    )
+                    bot.send_voice(chat_id, voice_file, caption=message)
+                    os.remove(as_audio)
+                    
+                    ramadan_groups[chat_id] += 1
+                    save_ramadan_groups()
+            except Exception as e:
+                print(f"خطأ في نشر الآية للمجموعة {chat_id}: {e}")
+        
+        time.sleep(300)  # 5 دقائق
+
+def setup_handlers(bot):
+    @bot.message_handler(commands=['ramadan'])
+    def start_ramadan(message):
+        chat_id = message.chat.id
+        if message.chat.type not in ['group', 'supergroup']:
+            bot.reply_to(message, "❌ هذا الأمر متاح فقط في المجموعات.")
+            return
+        
+        from ste import is_user_admin  # استدعاء دالة التحقق من المشرف
+        if not is_user_admin(bot, chat_id, message.from_user.id):
+            bot.reply_to(message, "❌ هذا الأمر متاح للمشرفين فقط.")
+            return
+        
+        if str(chat_id) in ramadan_groups:
+            bot.reply_to(message, "⚠️ النشر التلقائي للآيات مفعل بالفعل في هذه المجموعة.")
+            return
+        
+        bot.reply_to(message, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 5 دقائق بمناسبة شهر رمضان.")
+        ramadan_groups[str(chat_id)] = 1
+        save_ramadan_groups()
+
+    @bot.message_handler(commands=['stop_ramadan'])
+    def stop_ramadan(message):
+        chat_id = message.chat.id
+        if message.chat.type not in ['group', 'supergroup']:
+            bot.reply_to(message, "❌ هذا الأمر متاح فقط في المجموعات.")
+            return
+        
+        from ste import is_user_admin
+        if not is_user_admin(bot, chat_id, message.from_user.id):
+            bot.reply_to(message, "❌ هذا الأمر متاح للمشرفين فقط.")
+            return
+        
+        if str(chat_id) not in ramadan_groups:
+            bot.reply_to(message, "⚠️ النشر التلقائي غير مفعل في هذه المجموعة.")
+            return
+        
+        del ramadan_groups[str(chat_id)]
+        save_ramadan_groups()
+        bot.reply_to(message, "✅ تم إيقاف النشر التلقائي للآيات القرآنية.")
