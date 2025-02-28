@@ -84,17 +84,7 @@ def ramadan_broadcast(bot):
                 print(f"خطأ في نشر الآية لـ {chat_id}: {e}")
                 time.sleep(10)  # تأخير قصير في حالة الخطأ
         
-        time.sleep(1200)  
-
-def check_existing_channels(bot):
-    """التحقق من القنوات التي ينتمي إليها البوت عند التشغيل"""
-    try:
-        # جلب قائمة الدردشات عبر API مباشرة (لا يوجد طريقة مباشرة في telebot، لذا نستخدم حلًا بديلًا)
-        # ملاحظة: هذا يعتمد على استقبال التحديثات، لكن سنضيف القنوات يدويًا إذا لزم الأمر
-        print("جاري التحقق من القنوات الموجودة...")
-        # للحصول على القنوات، يمكننا الاعتماد على المعالج أو إضافة القنوات يدويًا إذا كنت تعرفها
-    except Exception as e:
-        print(f"فشل في التحقق من القنوات الموجودة: {e}")
+        time.sleep(1200)  # 20 دقيقة
 
 def setup_handlers(bot):
     # أوامر للمجموعات فقط
@@ -114,7 +104,7 @@ def setup_handlers(bot):
             bot.reply_to(message, "⚠️ النشر التلقائي للآيات مفعل بالفعل في هذه المجموعة.")
             return
         
-        bot.reply_to(message, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 5 دقائق.")
+        bot.reply_to(message, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 20 دقيقة.")
         ramadan_groups[str(chat_id)] = 1
         save_ramadan_groups()
 
@@ -138,37 +128,64 @@ def setup_handlers(bot):
         save_ramadan_groups()
         bot.reply_to(message, "✅ تم إيقاف النشر التلقائي للآيات القرآنية.")
 
-    # التعامل مع إضافة البوت إلى قناة أو مجموعة جديدة
+    # أمر لتفعيل النشر في القنوات يدويًا
+    @bot.message_handler(commands=['start_channel_quran'])
+    def start_channel_quran(message):
+        chat_id = message.chat.id
+        if message.chat.type != 'channel':
+            bot.send_message(chat_id, "❌ هذا الأمر متاح فقط في القنوات.")
+            return
+        
+        try:
+            me = bot.get_chat_member(chat_id, bot.get_me().id)
+            if me.status != 'administrator':
+                bot.send_message(chat_id, "❌ يجب أن أكون مشرفًا لتفعيل النشر.")
+                return
+            
+            if str(chat_id) in ramadan_groups:
+                bot.send_message(chat_id, "⚠️ النشر التلقائي مفعل بالفعل في هذه القناة.")
+                return
+            
+            bot.send_message(chat_id, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 20 دقيقة.")
+            ramadan_groups[str(chat_id)] = 1
+            save_ramadan_groups()
+            print(f"تم تفعيل النشر يدويًا في القناة: {chat_id}")
+        except Exception as e:
+            print(f"فشل تفعيل النشر في القناة {chat_id}: {e}")
+            bot.send_message(chat_id, f"❌ حدث خطأ: {e}")
+
+    # التعامل مع إضافة البوت إلى قناة أو مجموعة
     @bot.chat_member_handler()
     def handle_new_chat_member(update: ChatMemberUpdated):
         chat = update.chat
         new_member = update.new_chat_member
         
-        if new_member.user.id == bot.get_me().id and new_member.status == 'administrator':
+        if new_member.user.id == bot.get_me().id and new_member.status == 'administrator' and chat.type == 'channel':
             chat_id = str(chat.id)
             if chat_id in ramadan_groups:
-                return  # تجنب التكرار
+                return
             
             try:
-                bot.send_message(chat_id, "✅ تم إضافة البوت. سيبدأ النشر التلقائي للآيات القرآنية كل 5 دقائق.")
+                bot.send_message(chat_id, "✅ تم إضافة البوت إلى القناة. سيبدأ النشر التلقائي للآيات القرآنية كل 20 دقيقة.")
                 ramadan_groups[chat_id] = 1
                 save_ramadan_groups()
-                print(f"تم تفعيل النشر في {chat.type}: {chat.title} ({chat_id})")
+                print(f"تم تفعيل النشر في القناة: {chat.title} ({chat_id})")
             except Exception as e:
-                print(f"فشل تفعيل النشر في {chat_id}: {e}")
+                print(f"فشل تفعيل النشر في القناة {chat_id}: {e}")
 
-    # التعامل مع أي رسالة في القناة لتفعيل النشر إذا لم يكن مفعلاً
+    # التعامل مع أي منشور في القناة لاكتشافها
     @bot.channel_post_handler()
     def handle_channel_post(message):
         chat_id = str(message.chat.id)
         if message.chat.type == 'channel' and chat_id not in ramadan_groups:
             try:
-                # التحقق من أن البوت مشرف
-                me = bot.get_chat_member(message.chat.id, bot.get_me().id)
-                if me.status == 'administrator':
+                me = bot.get_chat_member(chat_id, bot.get_me().id)
+                if me.status == 'administrator' and me.can_post_messages:
                     ramadan_groups[chat_id] = 1
                     save_ramadan_groups()
-                    bot.send_message(chat_id, "✅ تم الكشف عن القناة. سيبدأ النشر التلقائي للآيات القرآنية كل 5 دقائق.")
+                    bot.send_message(chat_id, "✅ تم الكشف عن القناة. سيبدأ النشر التلقائي للآيات القرآنية كل 20 دقيقة.")
                     print(f"تم تفعيل النشر في القناة: {message.chat.title} ({chat_id})")
+                else:
+                    print(f"البوت ليس لديه صلاحية النشر في القناة {chat_id}")
             except Exception as e:
                 print(f"فشل في التحقق من حالة البوت في القناة {chat_id}: {e}")
