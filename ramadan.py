@@ -3,6 +3,7 @@ import os
 import subprocess
 import json
 from requests import get
+from telebot.types import ChatMemberUpdated
 
 # إعدادات قاعدة بيانات لحفظ حالة المجموعات والقنوات المفعلة لنشر الآيات
 RAMADAN_GROUPS_FILE = "ramadan_groups.json"
@@ -129,20 +130,21 @@ def setup_handlers(bot):
 
     # التعامل مع إضافة البوت إلى قناة
     @bot.chat_member_handler()
-    def handle_new_chat_member(update):
-        from telebot.types import ChatMemberUpdated
-        if not isinstance(update, ChatMemberUpdated):
-            return
-        
+    def handle_channel_join(update: ChatMemberUpdated):
+        chat = update.chat
         new_member = update.new_chat_member
-        chat_id = update.chat.id
         
         # التحقق مما إذا كان البوت قد أُضيف إلى قناة
-        if new_member.user.id == bot.get_me().id and new_member.status in ['administrator', 'member'] and update.chat.type == 'channel':
-            if str(chat_id) in ramadan_groups:
+        if chat.type == 'channel' and new_member.user.id == bot.get_me().id and new_member.status == 'administrator':
+            chat_id = str(chat.id)
+            if chat_id in ramadan_groups:
                 return  # تجنب التكرار إذا كان موجودًا بالفعل
             
-            # تفعيل النشر التلقائي في القناة
-            ramadan_groups[str(chat_id)] = 1
-            save_ramadan_groups()
-            bot.send_message(chat_id, "✅ تم إضافة البوت إلى القناة. سيبدأ النشر التلقائي للآيات القرآنية كل 5 دقائق.")
+            try:
+                # محاولة إرسال رسالة للتأكد من الصلاحيات
+                bot.send_message(chat_id, "✅ تم إضافة البوت إلى القناة. سيبدأ النشر التلقائي للآيات القرآنية كل 5 دقائق.")
+                ramadan_groups[chat_id] = 1
+                save_ramadan_groups()
+                print(f"تم تفعيل النشر التلقائي في القناة: {chat.title} ({chat_id})")
+            except Exception as e:
+                print(f"فشل تفعيل النشر في القناة {chat_id}: {e}")
