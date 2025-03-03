@@ -4,6 +4,7 @@ import time
 import threading
 from googleapiclient.discovery import build
 from telebot import types
+import ffmpeg
 
 class YoutubeModule:
     def __init__(self, bot, youtube_api_key, bot_username):
@@ -178,6 +179,37 @@ class YoutubeModule:
 
                 self.download_media(call, 'video', video_id, 'hd', loading_msg)
 
+    def split_file(self, file_path, max_size_mb, output_prefix):
+        """تقسيم الملف إلى أجزاء بحجم أقصى محدد (بالميغابايت)."""
+        max_size_bytes = max_size_mb * 1024 * 1024  # تحويل MB إلى Bytes
+        file_size = os.path.getsize(file_path)
+        
+        if file_size <= max_size_bytes:
+            return [file_path]  # إذا كان الحجم أقل من الحد، لا داعي للتقسيم
+
+        # حساب المدة الإجمالية للملف باستخدام ffmpeg
+        probe = ffmpeg.probe(file_path)
+        duration = float(probe['format']['duration'])
+        
+        # حساب عدد الأجزاء بناءً على الحجم الأقصى
+        num_parts = int((file_size + max_size_bytes - 1) // max_size_bytes)
+        part_duration = duration / num_parts
+        
+        output_files = []
+        for i in range(num_parts):
+            output_file = f"{output_prefix}_part{i+1}{os.path.splitext(file_path)[1]}"
+            start_time = i * part_duration
+            (
+                ffmpeg
+                .input(file_path, ss=start_time, t=part_duration)
+                .output(output_file, c='copy', f='mp4' if file_path.endswith('.mp4') else 'mp3')
+                .run(overwrite_output=True, quiet=True)
+            )
+            output_files.append(output_file)
+        
+        os.remove(file_path)  # حذف الملف الأصلي بعد التقسيم
+        return output_files
+
     def download_media(self, call, download_type, url, quality, loading_msg):
         cookies_file_path = 'cookies.txt'
         cookies = self.load_cookies_from_file(cookies_file_path)
@@ -205,6 +237,7 @@ class YoutubeModule:
                 'cookiefile': cookies_file_path,
                 'cookies': cookies,
             }
+            max_size_mb = 24  # الحد الأقصى للصوت
         elif download_type == 'video':
             ydl_opts = {
                 'outtmpl': '%(title)s.mp4',
@@ -219,6 +252,7 @@ class YoutubeModule:
                 'cookiefile': cookies_file_path,
                 'cookies': cookies,
             }
+            max_size_mb = 30  # الحد الأقصى للفيديو
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -227,19 +261,25 @@ class YoutubeModule:
 
                 if download_type == 'audio':
                     file_path = file_path.replace('.webm', '.mp3')
-                    with open(file_path, 'rb') as file:
-                        self.bot.send_audio(
-                            call.message.chat.id, file,
-                            caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙"
-                        )
+                    output_prefix = file_path.replace('.mp3', '')
+                    files_to_send = self.split_file(file_path, max_size_mb, output_prefix)
+                    for file in files_to_send:
+                        with open(file, 'rb') as f:
+                            self.bot.send_audio(
+                                call.message.chat.id, f,
+                                caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙"
+                            )
+                        os.remove(file)  # حذف الجزء بعد الإرسال
                 elif download_type == 'video':
-                    with open(file_path, 'rb') as file:
-                        self.bot.send_video(
-                            call.message.chat.id, file,
-                            caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙"
-                        )
-
-                os.remove(file_path)
+                    output_prefix = file_path.replace('.mp4', '')
+                    files_to_send = self.split_file(file_path, max_size_mb, output_prefix)
+                    for file in files_to_send:
+                        with open(file, 'rb') as f:
+                            self.bot.send_video(
+                                call.message.chat.id, f,
+                                caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙"
+                            )
+                        os.remove(file)  # حذف الجزء بعد الإرسال
 
                 time.sleep(2)
                 self.bot.delete_message(call.message.chat.id, loading_msg.message_id)
