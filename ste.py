@@ -2618,13 +2618,13 @@ def send_audio(message):
     bot.send_audio(message.chat.id, audio_file_id, caption="يلعن روحه بقبره")  
 @bot.message_handler(func=lambda message: 'مطور' in message.text or 'المطور' in message.text)
 def send_animation(message):
-    animation_file_id = 'https://t.me/srevbo67/8'  # رابط الصورة المتحركة (GIF)
+    animation_file_id = 'https://t.me/srevbo67/276'  # رابط الصورة المتحركة (GIF)
 
     caption = """<b>✦ ⚡مـطورة الـبوت ✦</b>  
 🚀 <b>𝐒𝐎𝐔𝐑𝐂𝐄 𝐒𝐁</b> ⚡  .
 
 🌟 <b>مـعلومـات الـمـطـور:</b>  
-👤 <b>الاســم:</b> 𝐒𝐀𝐇𝐀𝐑 𝐒𝐁 <i>(سـحـر)</i>  
+👤 <b>الاســم:</b> 𝗕𝗡𝗧 𝗦𝗬𝗥𝗜𝗔 <i>(بـنـت سوريـا)</i>  
 🔹 <b>اليـوزر:</b> @SB_SAHAR  
 🆔 <b>الايـدي:</b> 6789179634  
 ⚡ <b>الرتبــه:</b> <i>👑DEV الـمـطـورة</i>  
