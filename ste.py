@@ -1826,7 +1826,7 @@ def download_tt(chat_id, url, format_type):
                     # إرسال الملف
                     with open(file_path, 'rb') as f:
                         if format_type == 'video':
-                            bot.send_video(chat_id, f)
+                            bot.send_video(chat_id, f) نه
                         elif format_type == 'audio':
                             bot.send_audio(chat_id, f)
                     
@@ -2635,7 +2635,7 @@ def send_animation(message):
 
     # إنشاء زر تفاعلي للتواصل مع المطور
     keyboard = types.InlineKeyboardMarkup()
-    contact_button = types.InlineKeyboardButton("💬 𝙳𝙴𝚅 𝚂𝙰𝙷𝙰𝚁", url="https://t.me/SB_SAHAR")
+    contact_button = types.InlineKeyboardButton("💬𝗕𝗡𝗧▪️𝗦𝗬𝗥𝗜𝗔", url="https://t.me/SB_SAHAR")
     keyboard.add(contact_button)
 
     bot.send_animation(message.chat.id, animation_file_id, caption=caption, parse_mode="HTML", reply_markup=keyboard)
