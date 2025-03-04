@@ -1826,7 +1826,7 @@ def download_tt(chat_id, url, format_type):
                     # إرسال الملف
                     with open(file_path, 'rb') as f:
                         if format_type == 'video':
-                            bot.send_video(chat_id, f) نه
+                            bot.send_video(chat_id, f) 
                         elif format_type == 'audio':
                             bot.send_audio(chat_id, f)
                     
