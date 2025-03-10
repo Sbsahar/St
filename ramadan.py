@@ -84,7 +84,7 @@ def ramadan_broadcast(bot):
                 print(f"خطأ في نشر الآية لـ {chat_id}: {e}")
                 time.sleep(10)  # تأخير قصير في حالة الخطأ
         
-        time.sleep(1200)  # 20 دقيقة
+        time.sleep(3600)  # 20 دقيقة
 
 def setup_handlers(bot):
     # أوامر للمجموعات
@@ -104,7 +104,7 @@ def setup_handlers(bot):
             bot.reply_to(message, "⚠️ النشر التلقائي للآيات مفعل بالفعل في هذه المجموعة.")
             return
         
-        bot.reply_to(message, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 20 دقيقة.")
+        bot.reply_to(message, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 60 دقيقة.")
         ramadan_groups[str(chat_id)] = 1
         save_ramadan_groups()
 
@@ -146,7 +146,7 @@ def setup_handlers(bot):
                 bot.send_message(chat_id, "⚠️ النشر التلقائي مفعل بالفعل في هذه القناة.")
                 return
             
-            bot.send_message(chat_id, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 20 دقيقة.")
+            bot.send_message(chat_id, "✅ تم تفعيل النشر التلقائي للآيات القرآنية كل 60 دقيقة.")
             ramadan_groups[str(chat_id)] = 1
             save_ramadan_groups()
             print(f"تم تفعيل النشر يدويًا في القناة: {chat_id}")
