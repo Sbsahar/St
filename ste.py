@@ -301,7 +301,7 @@ def check_image_safety(image_path):
         nsfw_probability = n2.predict_image(image)
         
         # تحديد إذا كانت الصورة غير لائقة
-        if nsfw_probability > 0.5:  # يمكنك تعديل العتبة حسب الحاجة
+        if nsfw_probability > 0.7:  # يمكنك تعديل العتبة حسب الحاجة
             return 'nude'
         return 'ok'
     
@@ -372,7 +372,7 @@ def process_media(content, file_extension, message, media_type):
     """
     معالجة الميديا (الفيديو والملفات المتحركة) باستخدام OpenNSFW2.
     يتم حفظ المحتوى مؤقتًا، ثم تحليل الفيديو باستخدام predict_video_frames.
-    إذا كان أي إطار بنسبة NSFW >= 0.5، يتم اعتبار المحتوى غير لائق.
+    إذا كان أي إطار بنسبة NSFW >= 0.7، يتم اعتبار المحتوى غير لائق.
     """
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
@@ -382,8 +382,8 @@ def process_media(content, file_extension, message, media_type):
             # استخدام دالة predict_video_frames لتحليل الفيديو
             elapsed_seconds, nsfw_probabilities = n2.predict_video_frames(temp_file.name)
             
-            # إذا كان هناك أي إطار بنسبة NSFW >= 0.5، يعتبر المحتوى غير لائق
-            if any(prob >= 0.5 for prob in nsfw_probabilities):
+            # إذا كان هناك أي إطار بنسبة NSFW >= 0.7، يعتبر المحتوى غير لائق
+            if any(prob >= 0.7 for prob in nsfw_probabilities):
                 handle_violation(message, media_type)
             
             os.unlink(temp_file.name)
