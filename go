@@ -211,51 +211,71 @@ async def start_broadcast(user_id, query, context):
     is_live = video_data["is_live"]
 
     log_file = os.path.join(LOG_DIR, f"ffmpeg_{channel_id}.log")
-    try:
-        ffmpeg_command = [
-            "ffmpeg",
-            "-re",
-            "-i", input_source,
-            "-c:v", "libx264",
-            "-preset", "fast",  # تحسين السرعة والجودة
-            "-b:v", "2M",       # معدل بت ثابت للفيديو
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-f", "flv",
-            "-loglevel", "verbose"
-        ]
-        if is_live:
-            ffmpeg_command.extend(["-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5"])  # إعادة الاتصال للبث المباشر
-        ffmpeg_command.append(rtmps_url)
+    max_retries = 3
+    retry_delay = 5  # ثوانٍ
 
-        logger.info(f"Starting ffmpeg with command: {' '.join(ffmpeg_command)}")
-        with open(log_file, "w") as log:
-            process = subprocess.Popen(ffmpeg_command, stdout=log, stderr=log)
-        user_data[user_id]["processes"][channel_id] = process
+    for attempt in range(max_retries):
+        try:
+            ffmpeg_command = [
+                "ffmpeg",
+                "-re",
+                "-i", input_source,
+                "-c:v", "libx264",
+                "-preset", "veryfast",  # سرعة أعلى لتقليل التأخير
+                "-b:v", "2500k",        # معدل بت أعلى لضمان الجودة
+                "-maxrate", "3000k",    # حد أقصى لمعدل البت
+                "-bufsize", "6000k",    # حجم المخزن المؤقت
+                "-r", "30",             # معدل الإطارات 30 fps
+                "-g", "60",             # GOP size لتحسين الاستقرار
+                "-c:a", "aac",
+                "-b:a", "128k",
+                "-ar", "44100",         # معدل عينة الصوت
+                "-f", "flv",
+                "-flvflags", "no_duration_filesize",  # تحسين توافق تلغرام
+                "-loglevel", "verbose"
+            ]
+            if is_live:
+                ffmpeg_command.extend([
+                    "-reconnect", "1",
+                    "-reconnect_streamed", "1",
+                    "-reconnect_delay_max", "10"  # إعادة الاتصال لمدة 10 ثوانٍ
+                ])
+            ffmpeg_command.append(rtmps_url)
 
-        await asyncio.sleep(10)  # الانتظار 10 ثوانٍ للتأكد من الاتصال
-        if process.poll() is not None:
+            logger.info(f"Attempt {attempt + 1}/{max_retries} - Starting ffmpeg with command: {' '.join(ffmpeg_command)}")
+            with open(log_file, "w") as log:
+                process = subprocess.Popen(ffmpeg_command, stdout=log, stderr=log)
+            user_data[user_id]["processes"][channel_id] = process
+
+            await asyncio.sleep(15)  # الانتظار 15 ثانية للتأكد من الاستقرار
+            if process.poll() is not None:
+                with open(log_file, "r") as log:
+                    error_log = log.read()
+                raise Exception(f"ffmpeg failed early: {error_log}")
+
+            if context.job_queue:
+                context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
+            else:
+                logger.warning("Job queue unavailable, broadcast end check will not run.")
+
+            await safe_edit(query, 
+                f"🎥 بدأ البث المباشر لقناتك!\nالقناة: {channel_id}\n{'بث مباشر' if is_live else 'فيديو'}",
+                reply_markup=main_menu_keyboard()
+            )
+            return  # نجاح البث، خروج من الحلقة
+
+        except Exception as e:
+            logger.error(f"Attempt {attempt + 1}/{max_retries} failed: {e}")
             with open(log_file, "r") as log:
                 error_log = log.read()
-            raise Exception(f"ffmpeg failed early: {error_log}")
-
-        if context.job_queue:
-            context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
-        else:
-            logger.warning("Job queue unavailable, broadcast end check will not run.")
-
-        await safe_edit(query, 
-            f"🎥 بدأ البث المباشر لقناتك!\nالقناة: {channel_id}\n{'بث مباشر' if is_live else 'فيديو'}",
-            reply_markup=main_menu_keyboard()
-        )
-    except Exception as e:
-        logger.error(f"Error starting broadcast: {e}")
-        with open(log_file, "r") as log:
-            error_log = log.read()
-        await safe_edit(query, 
-            f"حدث خطأ أثناء بدء البث: {str(e)}\nتفاصيل الخطأ في السجل: {error_log[:500]}",
-            reply_markup=main_menu_keyboard()
-        )
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay)  # الانتظار قبل المحاولة التالية
+                continue
+            else:
+                await safe_edit(query, 
+                    f"حدث خطأ أثناء بدء البث بعد {max_retries} محاولات: {str(e)}\nتفاصيل الخطأ: {error_log[:500]}",
+                    reply_markup=main_menu_keyboard()
+                )
 
 async def check_broadcast_end(context):
     job = context.job
