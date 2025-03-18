@@ -4,23 +4,24 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 import yt_dlp
+from telegram.error import BadRequest
 
-# إعداد التسجيل لتتبع الأخطاء
+# إعداد التسجيل
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # القيم الأساسية
-TOKEN = "7942028086:AAFTxAdkR0xEriPrFZb3rVhC8tTWCFIa_PI"  # التوكن الجديد
+TOKEN = "7942028086:AAFTxAdkR0xEriPrFZb3rVhC8tTWCFIa_PI"
 DOWNLOAD_DIR = "downloads"
 
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
 
-user_data = {}  # {user_id: {"channels": {channel_id: rtmps_url}, "videos": {channel_id: {"path": video_path, "is_live": bool}}, "processes": {channel_id: process}}}
+user_data = {}
 
 async def start(update, context):
     user_id = update.effective_user.id
-    await update.message.reply_text(
+    await safe_reply(update, context, 
         "مرحباً بك في بوت البث المباشر! 🎥\n"
         "يمكنني بث أي مقطع فيديو أو بث مباشر من يوتيوب أو جوجل درايف في قناتك.\n"
         "أرسل لي مفتاح البث (RTMPS URL) ورابط الفيديو أو البث المباشر، وسأقوم ببثه لك! 🌟",
@@ -28,15 +29,26 @@ async def start(update, context):
     )
 
 def main_menu_keyboard():
-    keyboard = [
+    return InlineKeyboardMarkup([
         [InlineKeyboardButton("إضافة قناة", callback_data="add_channel")],
         [InlineKeyboardButton("إرسال رابط فيديو", callback_data="send_video")],
         [InlineKeyboardButton("بدء البث", callback_data="start_broadcast")],
         [InlineKeyboardButton("إيقاف البث", callback_data="stop_broadcast")],
         [InlineKeyboardButton("القنوات المضافة", callback_data="list_channels")],
         [InlineKeyboardButton("إيقاف كل عمليات البث", callback_data="stop_all_broadcasts")]
-    ]
-    return InlineKeyboardMarkup(keyboard)
+    ])
+
+async def safe_reply(update, context, text, reply_markup=None):
+    try:
+        await update.message.reply_text(text, reply_markup=reply_markup)
+    except BadRequest as e:
+        logger.warning(f"Failed to send message: {e}")
+
+async def safe_edit(query, text, reply_markup=None):
+    try:
+        await query.edit_message_text(text, reply_markup=reply_markup)
+    except BadRequest as e:
+        logger.warning(f"Failed to edit message: {e}")
 
 async def button(update, context):
     query = update.callback_query
@@ -44,13 +56,13 @@ async def button(update, context):
     await query.answer()
 
     if query.data == "add_channel":
-        await query.edit_message_text(
+        await safe_edit(query, 
             "أرسل لي مفتاح البث (RTMPS URL) الخاص بقناتك.\n"
             "مثال: rtmps://dc4-1.rtmp.t.me/s/2012804950:bTinKqgjNrYnPy4OF8RH0A",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("رجوع", callback_data="back")]])
         )
     elif query.data == "send_video":
-        await query.edit_message_text(
+        await safe_edit(query, 
             "أرسل لي رابط الفيديو أو البث المباشر من يوتيوب أو جوجل درايف لتحميله وبثه في قناتك.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("رجوع", callback_data="back")]])
         )
@@ -63,16 +75,12 @@ async def button(update, context):
     elif query.data == "stop_all_broadcasts":
         await stop_all_broadcasts(user_id, query)
     elif query.data == "back":
-        await query.edit_message_text(
-            "مرحباً بك في بوت البث المباشر! 🎥",
-            reply_markup=main_menu_keyboard()
-        )
+        await safe_edit(query, "مرحباً بك في بوت البث المباشر! 🎥", reply_markup=main_menu_keyboard())
     elif query.data.startswith("delete_channel_"):
         channel_id = query.data.split("_")[2]
         await confirm_delete_channel(user_id, channel_id, query)
     elif query.data.startswith("confirm_delete_"):
-        channel_id = query.data.split("_")[2]
-        action = query.data.split("_")[3]
+        channel_id, action = query.data.split("_")[2], query.data.split("_")[3]
         await handle_channel_deletion(user_id, channel_id, action, query)
     elif query.data.startswith("stop_channel_"):
         channel_id = query.data.split("_")[2]
@@ -84,46 +92,43 @@ async def handle_rtmps_url(update, context):
     if rtmps_url.startswith("rtmps://"):
         channel_id = rtmps_url.split("/")[-1].split(":")[0]
         user_data.setdefault(user_id, {"channels": {}, "videos": {}, "processes": {}})["channels"][channel_id] = rtmps_url
-        await update.message.reply_text(
-            "تم حفظ مفتاح البث بنجاح! ✅\n"
-            "الآن أرسل رابط الفيديو أو البث المباشر.",
+        await safe_reply(update, context, 
+            "تم حفظ مفتاح البث بنجاح! ✅\nالآن أرسل رابط الفيديو أو البث المباشر.",
             reply_markup=main_menu_keyboard()
         )
     else:
-        await update.message.reply_text("المفتاح غير صحيح! يجب أن يبدأ بـ 'rtmps://'. أعد المحاولة.")
+        await safe_reply(update, context, "المفتاح غير صحيح! يجب أن يبدأ بـ 'rtmps://'. أعد المحاولة.")
 
 async def handle_video_url(update, context):
     user_id = update.effective_user.id
     video_url = update.message.text.strip()
-    await update.message.reply_text("جاري التحقق من الرابط... ⏳")
+    await safe_reply(update, context, "جاري التحقق من الرابط... ⏳")
 
     is_live, video_info = check_video_status(video_url)
     if video_info:
         if user_id not in user_data or not user_data[user_id]["channels"]:
-            await update.message.reply_text(
-                "لم تقم بإضافة أي قناة بعد! أضف قناة أولاً باستخدام 'إضافة قناة'."
-            )
+            await safe_reply(update, context, "لم تقم بإضافة أي قناة بعد! أضف قناة أولاً باستخدام 'إضافة قناة'.")
             return
 
         channel_id = list(user_data[user_id]["channels"].keys())[0]
         if is_live:
             user_data[user_id]["videos"][channel_id] = {"path": video_url, "is_live": True}
-            await update.message.reply_text(
+            await safe_reply(update, context, 
                 "تم التعرف على البث المباشر! ✅\nاضغط 'بدء البث' لبثه في قناتك مباشرة.",
                 reply_markup=main_menu_keyboard()
             )
         else:
             video_path = download_video(video_url)
-            if video_path:
+            if video_path and os.path.exists(video_path):
                 user_data[user_id]["videos"][channel_id] = {"path": video_path, "is_live": False}
-                await update.message.reply_text(
+                await safe_reply(update, context, 
                     "نجح تحميل الفيديو إلى الخادم! ✅\nالفيديو جاهز للبث. اضغط 'بدء البث' لبثه.",
                     reply_markup=main_menu_keyboard()
                 )
             else:
-                await update.message.reply_text("فشل تحميل الفيديو! تأكد من الرابط وحاول مرة أخرى.")
+                await safe_reply(update, context, "فشل تحميل الفيديو! تأكد من الرابط وحاول مرة أخرى.")
     else:
-        await update.message.reply_text("فشل التحقق من الرابط! تأكد منه وحاول مرة أخرى.")
+        await safe_reply(update, context, "فشل التحقق من الرابط! تأكد منه وحاول مرة أخرى.")
 
 def check_video_status(url):
     ydl_opts = {"cookiefile": "cookies.txt"}
@@ -141,23 +146,21 @@ def download_video(url):
         "format": "bestvideo+bestaudio/best",
         "merge_output_format": "mp4",
         "outtmpl": output_path,
-        "cookiefile": "cookies.txt"
+        "cookiefile": "cookies.txt",
+        "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}]
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
             info = ydl.extract_info(url, download=False)
-            return ydl.prepare_filename(info)
+            return ydl.prepare_filename(info).replace(".webm", ".mp4")  # التأكد من أن الامتداد mp4
     except Exception as e:
         logger.error(f"Error downloading video: {e}")
         return None
 
 async def start_broadcast(user_id, query, context):
     if user_id not in user_data or not user_data[user_id]["channels"] or not user_data[user_id]["videos"]:
-        await query.edit_message_text(
-            "يجب عليك إضافة قناة وتحميل فيديو أو بث مباشر أولاً!",
-            reply_markup=main_menu_keyboard()
-        )
+        await safe_edit(query, "يجب عليك إضافة قناة وتحميل فيديو أو بث مباشر أولاً!", reply_markup=main_menu_keyboard())
         return
 
     channel_id = list(user_data[user_id]["channels"].keys())[0]
@@ -180,18 +183,22 @@ async def start_broadcast(user_id, query, context):
         if is_live:
             ffmpeg_command = [x for x in ffmpeg_command if x is not None]
 
+        logger.info(f"Starting ffmpeg with command: {' '.join(ffmpeg_command)}")
         process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         user_data[user_id]["processes"][channel_id] = process
 
-        context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
+        if context.job_queue:
+            context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
+        else:
+            logger.warning("Job queue is not available, broadcast end check will not run.")
 
-        await query.edit_message_text(
+        await safe_edit(query, 
             f"🎥 بدأ البث المباشر لقناتك!\nالقناة: {channel_id}\n{'بث مباشر' if is_live else 'فيديو'}",
             reply_markup=main_menu_keyboard()
         )
     except Exception as e:
         logger.error(f"Error starting broadcast: {e}")
-        await query.edit_message_text(
+        await safe_edit(query, 
             f"حدث خطأ أثناء بدء البث: {str(e)}\nتأكد من تثبيت ffmpeg وأن الرابط صالح.",
             reply_markup=main_menu_keyboard()
         )
@@ -210,30 +217,28 @@ async def check_broadcast_end(context):
 
         del user_data[user_id]["processes"][channel_id]
         del user_data[user_id]["videos"][channel_id]
-        await context.bot.send_message(
-            user_id,
-            "مرحباً عزيزي، الفيديو أو البث الخاص بك انتهى! 🎬\nيمكنك مشاركة رابط آخر لبثه.",
-            reply_markup=main_menu_keyboard()
-        )
+        try:
+            await context.bot.send_message(
+                user_id,
+                "مرحباً عزيزي، الفيديو أو البث الخاص بك انتهى! 🎬\nيمكنك مشاركة رابط آخر لبثه.",
+                reply_markup=main_menu_keyboard()
+            )
+        except BadRequest as e:
+            logger.warning(f"Failed to notify user: {e}")
     elif process:
-        context.job_queue.run_once(check_broadcast_end, 1, data=job.data)
+        if context.job_queue:
+            context.job_queue.run_once(check_broadcast_end, 1, data=job.data)
 
 async def show_stop_broadcast_options(user_id, query):
     if user_id not in user_data or not user_data[user_id]["processes"]:
-        await query.edit_message_text(
-            "لا يوجد بث يعمل حالياً!",
-            reply_markup=main_menu_keyboard()
-        )
+        await safe_edit(query, "لا يوجد بث يعمل حالياً!", reply_markup=main_menu_keyboard())
         return
 
     keyboard = [
         [InlineKeyboardButton(f"القناة: {channel_id}", callback_data=f"stop_channel_{channel_id}")]
         for channel_id in user_data[user_id]["processes"].keys()
     ] + [[InlineKeyboardButton("رجوع", callback_data="back")]]
-    await query.edit_message_text(
-        "اضغط على القناة التي تريد إيقاف البث فيها:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    await safe_edit(query, "اضغط على القناة التي تريد إيقاف البث فيها:", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def stop_broadcast_for_channel(user_id, channel_id, query, context):
     if channel_id in user_data[user_id]["processes"]:
@@ -244,17 +249,11 @@ async def stop_broadcast_for_channel(user_id, channel_id, query, context):
             logger.info(f"Deleted video: {video_data['path']}")
         del user_data[user_id]["processes"][channel_id]
         del user_data[user_id]["videos"][channel_id]
-        await query.edit_message_text(
-            f"تم إيقاف البث للقناة: {channel_id} 🛑",
-            reply_markup=main_menu_keyboard()
-        )
+        await safe_edit(query, f"تم إيقاف البث للقناة: {channel_id} 🛑", reply_markup=main_menu_keyboard())
 
 async def stop_all_broadcasts(user_id, query):
     if user_id not in user_data or not user_data[user_id]["processes"]:
-        await query.edit_message_text(
-            "لا يوجد بث يعمل حالياً!",
-            reply_markup=main_menu_keyboard()
-        )
+        await safe_edit(query, "لا يوجد بث يعمل حالياً!", reply_markup=main_menu_keyboard())
         return
 
     for channel_id, process in user_data[user_id]["processes"].items():
@@ -265,27 +264,18 @@ async def stop_all_broadcasts(user_id, query):
             logger.info(f"Deleted video: {video_data['path']}")
     user_data[user_id]["processes"].clear()
     user_data[user_id]["videos"].clear()
-    await query.edit_message_text(
-        "تم إيقاف كل عمليات البث بنجاح! 🛑",
-        reply_markup=main_menu_keyboard()
-    )
+    await safe_edit(query, "تم إيقاف كل عمليات البث بنجاح! 🛑", reply_markup=main_menu_keyboard())
 
 async def list_channels(user_id, query):
     if user_id not in user_data or not user_data[user_id]["channels"]:
-        await query.edit_message_text(
-            "لم تقم بإضافة أي قنوات بعد!",
-            reply_markup=main_menu_keyboard()
-        )
+        await safe_edit(query, "لم تقم بإضافة أي قنوات بعد!", reply_markup=main_menu_keyboard())
         return
 
     keyboard = [
         [InlineKeyboardButton(f"القناة: {channel_id}", callback_data=f"delete_channel_{channel_id}")]
         for channel_id in user_data[user_id]["channels"].keys()
     ] + [[InlineKeyboardButton("رجوع", callback_data="back")]]
-    await query.edit_message_text(
-        "القنوات المضافة:\nاختر قناة لحذفها إذا أردت:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    await safe_edit(query, "القنوات المضافة:\nاختر قناة لحذفها إذا أردت:", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def confirm_delete_channel(user_id, channel_id, query):
     keyboard = [
@@ -293,10 +283,7 @@ async def confirm_delete_channel(user_id, channel_id, query):
         [InlineKeyboardButton("لا", callback_data=f"confirm_delete_{channel_id}_no")],
         [InlineKeyboardButton("رجوع", callback_data="back")]
     ]
-    await query.edit_message_text(
-        f"هل ترغب في حذف القناة: {channel_id} من البث المباشر؟",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    await safe_edit(query, f"هل ترغب في حذف القناة: {channel_id} من البث المباشر؟", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def handle_channel_deletion(user_id, channel_id, action, query):
     if action == "yes":
@@ -310,15 +297,9 @@ async def handle_channel_deletion(user_id, channel_id, action, query):
                 os.remove(video_data["path"])
                 logger.info(f"Deleted video: {video_data['path']}")
             del user_data[user_id]["videos"][channel_id]
-        await query.edit_message_text(
-            f"تم حذف القناة: {channel_id} بنجاح!",
-            reply_markup=main_menu_keyboard()
-        )
+        await safe_edit(query, f"تم حذف القناة: {channel_id} بنجاح!", reply_markup=main_menu_keyboard())
     else:
-        await query.edit_message_text(
-            "تم الإلغاء.",
-            reply_markup=main_menu_keyboard()
-        )
+        await safe_edit(query, "تم الإلغاء.", reply_markup=main_menu_keyboard())
 
 def main():
     application = Application.builder().token(TOKEN).build()
