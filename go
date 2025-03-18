@@ -122,11 +122,15 @@ async def handle_video_url(update, context):
 
         channel_id = list(user_data[user_id]["channels"].keys())[0]
         if is_live:
-            user_data[user_id]["videos"][channel_id] = {"path": video_url, "is_live": True}
-            await safe_reply(update, context, 
-                "تم التعرف على البث المباشر! ✅\nاضغط 'بدء البث' لبثه في قناتك مباشرة.",
-                reply_markup=main_menu_keyboard()
-            )
+            stream_url = get_stream_url(video_url)
+            if stream_url:
+                user_data[user_id]["videos"][channel_id] = {"path": stream_url, "is_live": True}
+                await safe_reply(update, context, 
+                    "تم التعرف على البث المباشر! ✅\nاضغط 'بدء البث' لبثه في قناتك مباشرة.",
+                    reply_markup=main_menu_keyboard()
+                )
+            else:
+                await safe_reply(update, context, "فشل استخراج تيار البث المباشر! تأكد من الرابط.")
         else:
             video_path = download_video(video_url)
             if video_path and os.path.exists(video_path):
@@ -150,6 +154,20 @@ def check_video_status(url):
         logger.error(f"Error checking video status: {e}")
         return False, None
 
+def get_stream_url(url):
+    ydl_opts = {
+        "cookiefile": "cookies.txt",
+        "format": "best",
+        "geturl": True
+    }
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            return info["url"]
+    except Exception as e:
+        logger.error(f"Error extracting stream URL: {e}")
+        return None
+
 def download_video(url):
     output_path = os.path.join(DOWNLOAD_DIR, "video_%(title)s.mp4")
     ydl_opts = {
@@ -158,7 +176,7 @@ def download_video(url):
         "cookiefile": "cookies.txt",
         "merge_output_format": "mp4",
         "postprocessors": [{
-            "key": "FFmpegMerger",
+            "key": "FFmpegMerge",
             "when": "after_move"
         }]
     }
@@ -202,7 +220,7 @@ async def start_broadcast(user_id, query, context):
         # التحقق من نجاح البث
         stderr = process.stderr.read().decode()
         if "error" in stderr.lower() or process.poll() is not None:
-            raise Exception(f"ffmpeg failed: {stderr[:200]}")  # قص الرسالة إذا كانت طويلة
+            raise Exception(f"ffmpeg failed: {stderr[:200]}")
 
         if context.job_queue:
             context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
