@@ -137,7 +137,6 @@ async def handle_video_url(update, context):
                 await safe_reply(update, context, "فشل استخراج تيار البث المباشر! تأكد من الرابط.")
         else:
             video_path = download_video(video_url)
-            # التحقق من وجود الملف حتى لو لم يتم تحميله الآن
             expected_path = os.path.join(DOWNLOAD_DIR, f"video_{video_info.get('title', 'unknown')}.mp4")
             if os.path.exists(expected_path):
                 user_data[user_id]["videos"][channel_id] = {"path": expected_path, "is_live": False}
@@ -217,23 +216,24 @@ async def start_broadcast(user_id, query, context):
             "ffmpeg",
             "-re",
             "-i", input_source,
-            "-c:v", "libx264" if not is_live else "copy",
+            "-c:v", "libx264",
+            "-preset", "fast",  # تحسين السرعة والجودة
+            "-b:v", "2M",       # معدل بت ثابت للفيديو
             "-c:a", "aac",
             "-b:a", "128k",
             "-f", "flv",
-            "-loglevel", "verbose",
-            rtmps_url
+            "-loglevel", "verbose"
         ]
         if is_live:
-            ffmpeg_command = [x for x in ffmpeg_command if x not in ["-b:v", "2M"]]
+            ffmpeg_command.extend(["-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5"])  # إعادة الاتصال للبث المباشر
+        ffmpeg_command.append(rtmps_url)
 
         logger.info(f"Starting ffmpeg with command: {' '.join(ffmpeg_command)}")
         with open(log_file, "w") as log:
             process = subprocess.Popen(ffmpeg_command, stdout=log, stderr=log)
         user_data[user_id]["processes"][channel_id] = process
 
-        # الانتظار لمدة أطول للتأكد من الاتصال
-        await asyncio.sleep(10)  # زيادة الانتظار إلى 10 ثوانٍ
+        await asyncio.sleep(10)  # الانتظار 10 ثوانٍ للتأكد من الاتصال
         if process.poll() is not None:
             with open(log_file, "r") as log:
                 error_log = log.read()
@@ -253,7 +253,7 @@ async def start_broadcast(user_id, query, context):
         with open(log_file, "r") as log:
             error_log = log.read()
         await safe_edit(query, 
-            f"حدث خطأ أثناء بدء البث: {str(e)}\nتفاصيل الخطأ في السجل: {error_log[:500]}",  # زيادة الحد إلى 500
+            f"حدث خطأ أثناء بدء البث: {str(e)}\nتفاصيل الخطأ في السجل: {error_log[:500]}",
             reply_markup=main_menu_keyboard()
         )
 
