@@ -21,7 +21,7 @@ user_data = {}
 
 async def start(update, context):
     if not update.message.chat.type == "private":
-        return  # تجاهل المجموعات والقنوات
+        return
     user_id = update.effective_user.id
     await safe_reply(update, context, 
         "مرحباً بك في بوت البث المباشر! 🎥\n"
@@ -59,8 +59,7 @@ async def button(update, context):
 
     if query.data == "add_channel":
         await safe_edit(query, 
-            "أرسل لي مفتاح البث (RTMPS URL) الخاص بقناتك.\n"
-            "مثال: rtmps://dc4-1.rtmp.t.me/s/2012804950:bTinKqgjNrYnPy4OF8RH0A",
+            "أرسل لي مفتاح البث (RTMPS URL) الخاص بقناتك.\nمثال: rtmps://dc4-1.rtmp.t.me/s/2012804950:bTinKqgjNrYnPy4OF8RH0A",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("رجوع", callback_data="back")]])
         )
     elif query.data == "send_video":
@@ -90,7 +89,7 @@ async def button(update, context):
 
 async def handle_rtmps_url(update, context):
     if not update.message.chat.type == "private":
-        return  # تجاهل المجموعات والقنوات
+        return
     user_id = update.effective_user.id
     rtmps_url = update.message.text.strip()
     if rtmps_url.startswith("rtmps://"):
@@ -105,13 +104,13 @@ async def handle_rtmps_url(update, context):
 
 async def handle_video_url(update, context):
     if not update.message.chat.type == "private":
-        return  # تجاهل المجموعات والقنوات
+        return
     user_id = update.effective_user.id
     video_url = update.message.text.strip()
 
     if not video_url.startswith("https://"):
         logger.info(f"Ignoring invalid URL: {video_url}")
-        return  # تجاهل النصوص غير الروابط
+        return
 
     await safe_reply(update, context, "جاري التحقق من الرابط... ⏳")
 
@@ -152,19 +151,21 @@ def check_video_status(url):
         return False, None
 
 def download_video(url):
-    output_path = os.path.join(DOWNLOAD_DIR, "video_%(title)s.%(ext)s")
+    output_path = os.path.join(DOWNLOAD_DIR, "video_%(title)s.mp4")
     ydl_opts = {
         "format": "bestvideo+bestaudio/best",
-        "merge_output_format": "mp4",
         "outtmpl": output_path,
         "cookiefile": "cookies.txt",
-        "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}]
+        "merge_output_format": "mp4",
+        "postprocessors": [{
+            "key": "FFmpegMerger",
+            "when": "after_move"
+        }]
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-            info = ydl.extract_info(url, download=False)
-            return ydl.prepare_filename(info).replace(".webm", ".mp4")
+            return output_path
     except Exception as e:
         logger.error(f"Error downloading video: {e}")
         return None
@@ -198,10 +199,10 @@ async def start_broadcast(user_id, query, context):
         process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         user_data[user_id]["processes"][channel_id] = process
 
-        # قراءة مخرجات ffmpeg للتحقق من نجاح البث
+        # التحقق من نجاح البث
         stderr = process.stderr.read().decode()
-        if "error" in stderr.lower():
-            raise Exception(f"ffmpeg failed: {stderr}")
+        if "error" in stderr.lower() or process.poll() is not None:
+            raise Exception(f"ffmpeg failed: {stderr[:200]}")  # قص الرسالة إذا كانت طويلة
 
         if context.job_queue:
             context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
@@ -215,7 +216,7 @@ async def start_broadcast(user_id, query, context):
     except Exception as e:
         logger.error(f"Error starting broadcast: {e}")
         await safe_edit(query, 
-            f"حدث خطأ أثناء بدء البث: {str(e)}\nتأكد من تثبيت ffmpeg وأن الرابط صالح.",
+            f"حدث خطأ أثناء بدء البث: {str(e)}\nتأكد من أن مفتاح RTMPS صالح وأن ffmpeg يعمل.",
             reply_markup=main_menu_keyboard()
         )
 
