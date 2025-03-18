@@ -1,18 +1,21 @@
 import subprocess
 import os
+import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 import yt_dlp
 
-# القيم الأساسية
-TOKEN = "7942028086:AAFTxAdkR0xEriPrFZb3rVhC8tTWCFIa_PI"  # ضع توكن البوت هنا
-DOWNLOAD_DIR = "downloads"  # مجلد لتخزين الفيديوهات المحملة
+# إعداد التسجيل لتتبع الأخطاء
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# إنشاء مجلد التحميل إذا لم يكن موجوداً
+# القيم الأساسية
+TOKEN = "7942028086:AAFTxAdkR0xEriPrFZb3rVhC8tTWCFIa_PI"  # التوكن الجديد
+DOWNLOAD_DIR = "downloads"
+
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
 
-# متغيرات لتخزين بيانات المستخدمين
 user_data = {}  # {user_id: {"channels": {channel_id: rtmps_url}, "videos": {channel_id: {"path": video_path, "is_live": bool}}, "processes": {channel_id: process}}}
 
 async def start(update, context):
@@ -94,7 +97,6 @@ async def handle_video_url(update, context):
     video_url = update.message.text.strip()
     await update.message.reply_text("جاري التحقق من الرابط... ⏳")
 
-    # التحقق مما إذا كان بثاً مباشراً أو فيديو عادي
     is_live, video_info = check_video_status(video_url)
     if video_info:
         if user_id not in user_data or not user_data[user_id]["channels"]:
@@ -103,7 +105,7 @@ async def handle_video_url(update, context):
             )
             return
 
-        channel_id = list(user_data[user_id]["channels"].keys())[0]  # القناة الأولى افتراضياً
+        channel_id = list(user_data[user_id]["channels"].keys())[0]
         if is_live:
             user_data[user_id]["videos"][channel_id] = {"path": video_url, "is_live": True}
             await update.message.reply_text(
@@ -130,7 +132,7 @@ def check_video_status(url):
             info = ydl.extract_info(url, download=False)
             return info.get("is_live", False), info
     except Exception as e:
-        print(f"Error checking video status: {e}")
+        logger.error(f"Error checking video status: {e}")
         return False, None
 
 def download_video(url):
@@ -147,7 +149,7 @@ def download_video(url):
             info = ydl.extract_info(url, download=False)
             return ydl.prepare_filename(info)
     except Exception as e:
-        print(f"Error downloading video: {e}")
+        logger.error(f"Error downloading video: {e}")
         return None
 
 async def start_broadcast(user_id, query, context):
@@ -164,29 +166,35 @@ async def start_broadcast(user_id, query, context):
     input_source = video_data["path"]
     is_live = video_data["is_live"]
 
-    ffmpeg_command = [
-        "ffmpeg",
-        "-re",
-        "-i", input_source,
-        "-c:v", "libx264" if not is_live else "copy",  # نسخ الفيديو مباشرة إذا كان بثاً مباشراً
-        "-c:a", "aac",
-        "-b:v", "2M" if not is_live else None,
-        "-f", "flv",
-        rtmps_url
-    ]
-    if is_live:
-        ffmpeg_command = [x for x in ffmpeg_command if x is not None]  # إزالة القيم None للبث المباشر
+    try:
+        ffmpeg_command = [
+            "ffmpeg",
+            "-re",
+            "-i", input_source,
+            "-c:v", "libx264" if not is_live else "copy",
+            "-c:a", "aac",
+            "-b:v", "2M" if not is_live else None,
+            "-f", "flv",
+            rtmps_url
+        ]
+        if is_live:
+            ffmpeg_command = [x for x in ffmpeg_command if x is not None]
 
-    process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    user_data[user_id]["processes"][channel_id] = process
+        process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        user_data[user_id]["processes"][channel_id] = process
 
-    # مراقبة انتهاء البث
-    context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
+        context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
 
-    await query.edit_message_text(
-        f"🎥 بدأ البث المباشر لقناتك!\nالقناة: {channel_id}\n{'بث مباشر' if is_live else 'فيديو'}",
-        reply_markup=main_menu_keyboard()
-    )
+        await query.edit_message_text(
+            f"🎥 بدأ البث المباشر لقناتك!\nالقناة: {channel_id}\n{'بث مباشر' if is_live else 'فيديو'}",
+            reply_markup=main_menu_keyboard()
+        )
+    except Exception as e:
+        logger.error(f"Error starting broadcast: {e}")
+        await query.edit_message_text(
+            f"حدث خطأ أثناء بدء البث: {str(e)}\nتأكد من تثبيت ffmpeg وأن الرابط صالح.",
+            reply_markup=main_menu_keyboard()
+        )
 
 async def check_broadcast_end(context):
     job = context.job
@@ -194,12 +202,11 @@ async def check_broadcast_end(context):
     channel_id = job.data["channel_id"]
     process = user_data[user_id]["processes"].get(channel_id)
 
-    if process and process.poll() is not None:  # انتهى البث
-        # حذف الفيديو إذا لم يكن بثاً مباشراً
+    if process and process.poll() is not None:
         video_data = user_data[user_id]["videos"].get(channel_id, {})
         if not video_data.get("is_live") and os.path.exists(video_data["path"]):
             os.remove(video_data["path"])
-            print(f"Deleted video: {video_data['path']}")
+            logger.info(f"Deleted video: {video_data['path']}")
 
         del user_data[user_id]["processes"][channel_id]
         del user_data[user_id]["videos"][channel_id]
@@ -208,7 +215,7 @@ async def check_broadcast_end(context):
             "مرحباً عزيزي، الفيديو أو البث الخاص بك انتهى! 🎬\nيمكنك مشاركة رابط آخر لبثه.",
             reply_markup=main_menu_keyboard()
         )
-    elif process:  # البث مستمر
+    elif process:
         context.job_queue.run_once(check_broadcast_end, 1, data=job.data)
 
 async def show_stop_broadcast_options(user_id, query):
@@ -231,11 +238,10 @@ async def show_stop_broadcast_options(user_id, query):
 async def stop_broadcast_for_channel(user_id, channel_id, query, context):
     if channel_id in user_data[user_id]["processes"]:
         user_data[user_id]["processes"][channel_id].terminate()
-        # حذف الفيديو إذا لم يكن بثاً مباشراً
         video_data = user_data[user_id]["videos"].get(channel_id, {})
         if not video_data.get("is_live") and os.path.exists(video_data["path"]):
             os.remove(video_data["path"])
-            print(f"Deleted video: {video_data['path']}")
+            logger.info(f"Deleted video: {video_data['path']}")
         del user_data[user_id]["processes"][channel_id]
         del user_data[user_id]["videos"][channel_id]
         await query.edit_message_text(
@@ -256,7 +262,7 @@ async def stop_all_broadcasts(user_id, query):
         video_data = user_data[user_id]["videos"].get(channel_id, {})
         if not video_data.get("is_live") and os.path.exists(video_data["path"]):
             os.remove(video_data["path"])
-            print(f"Deleted video: {video_data['path']}")
+            logger.info(f"Deleted video: {video_data['path']}")
     user_data[user_id]["processes"].clear()
     user_data[user_id]["videos"].clear()
     await query.edit_message_text(
@@ -302,7 +308,7 @@ async def handle_channel_deletion(user_id, channel_id, action, query):
             video_data = user_data[user_id]["videos"][channel_id]
             if not video_data["is_live"] and os.path.exists(video_data["path"]):
                 os.remove(video_data["path"])
-                print(f"Deleted video: {video_data['path']}")
+                logger.info(f"Deleted video: {video_data['path']}")
             del user_data[user_id]["videos"][channel_id]
         await query.edit_message_text(
             f"تم حذف القناة: {channel_id} بنجاح!",
