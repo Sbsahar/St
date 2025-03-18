@@ -1,6 +1,7 @@
 import subprocess
 import os
 import logging
+import asyncio  # إضافة استيراد asyncio
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 import yt_dlp
