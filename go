@@ -20,6 +20,8 @@ if not os.path.exists(DOWNLOAD_DIR):
 user_data = {}
 
 async def start(update, context):
+    if not update.message.chat.type == "private":
+        return  # تجاهل المجموعات والقنوات
     user_id = update.effective_user.id
     await safe_reply(update, context, 
         "مرحباً بك في بوت البث المباشر! 🎥\n"
@@ -87,6 +89,8 @@ async def button(update, context):
         await stop_broadcast_for_channel(user_id, channel_id, query, context)
 
 async def handle_rtmps_url(update, context):
+    if not update.message.chat.type == "private":
+        return  # تجاهل المجموعات والقنوات
     user_id = update.effective_user.id
     rtmps_url = update.message.text.strip()
     if rtmps_url.startswith("rtmps://"):
@@ -100,8 +104,15 @@ async def handle_rtmps_url(update, context):
         await safe_reply(update, context, "المفتاح غير صحيح! يجب أن يبدأ بـ 'rtmps://'. أعد المحاولة.")
 
 async def handle_video_url(update, context):
+    if not update.message.chat.type == "private":
+        return  # تجاهل المجموعات والقنوات
     user_id = update.effective_user.id
     video_url = update.message.text.strip()
+
+    if not video_url.startswith("https://"):
+        logger.info(f"Ignoring invalid URL: {video_url}")
+        return  # تجاهل النصوص غير الروابط
+
     await safe_reply(update, context, "جاري التحقق من الرابط... ⏳")
 
     is_live, video_info = check_video_status(video_url)
@@ -128,7 +139,7 @@ async def handle_video_url(update, context):
             else:
                 await safe_reply(update, context, "فشل تحميل الفيديو! تأكد من الرابط وحاول مرة أخرى.")
     else:
-        await safe_reply(update, context, "فشل التحقق من الرابط! تأكد منه وحاول مرة أخرى.")
+        await safe_reply(update, context, "فشل التحقق من الرابط! تأكد من أنه رابط يوتيوب أو جوجل درايف صالح.")
 
 def check_video_status(url):
     ydl_opts = {"cookiefile": "cookies.txt"}
@@ -153,7 +164,7 @@ def download_video(url):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
             info = ydl.extract_info(url, download=False)
-            return ydl.prepare_filename(info).replace(".webm", ".mp4")  # التأكد من أن الامتداد mp4
+            return ydl.prepare_filename(info).replace(".webm", ".mp4")
     except Exception as e:
         logger.error(f"Error downloading video: {e}")
         return None
@@ -187,10 +198,15 @@ async def start_broadcast(user_id, query, context):
         process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         user_data[user_id]["processes"][channel_id] = process
 
+        # قراءة مخرجات ffmpeg للتحقق من نجاح البث
+        stderr = process.stderr.read().decode()
+        if "error" in stderr.lower():
+            raise Exception(f"ffmpeg failed: {stderr}")
+
         if context.job_queue:
             context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
         else:
-            logger.warning("Job queue is not available, broadcast end check will not run.")
+            logger.warning("Job queue unavailable, broadcast end check will not run.")
 
         await safe_edit(query, 
             f"🎥 بدأ البث المباشر لقناتك!\nالقناة: {channel_id}\n{'بث مباشر' if is_live else 'فيديو'}",
