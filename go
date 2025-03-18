@@ -206,22 +206,23 @@ async def start_broadcast(user_id, query, context):
             "-i", input_source,
             "-c:v", "libx264" if not is_live else "copy",
             "-c:a", "aac",
-            "-b:v", "2M" if not is_live else None,
+            "-b:a", "128k",
             "-f", "flv",
+            "-loglevel", "verbose",  # للحصول على تفاصيل أكثر في حالة الفشل
             rtmps_url
         ]
         if is_live:
-            ffmpeg_command = [x for x in ffmpeg_command if x is not None]
+            ffmpeg_command = [x for x in ffmpeg_command if x not in ["-b:v", "2M"]]
 
         logger.info(f"Starting ffmpeg with command: {' '.join(ffmpeg_command)}")
         process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         user_data[user_id]["processes"][channel_id] = process
 
         # الانتظار للحصول على مخرجات للتحقق من النجاح
-        stdout, stderr = process.communicate(timeout=15)
+        stdout, stderr = process.communicate(timeout=20)
         stderr_str = stderr.decode()
-        if "error" in stderr_str.lower() or process.poll() is not None:
-            raise Exception(f"ffmpeg failed: {stderr_str[:300]}")  # زيادة الحد للحصول على تفاصيل أكثر
+        if process.poll() is not None or "error" in stderr_str.lower():
+            raise Exception(f"ffmpeg failed with details: {stderr_str[:500]}")  # عرض تفاصيل أكثر
 
         if context.job_queue:
             context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
@@ -234,12 +235,13 @@ async def start_broadcast(user_id, query, context):
         )
     except subprocess.TimeoutExpired:
         process.kill()
-        logger.error("ffmpeg timed out")
-        await safe_edit(query, "حدث خطأ: انتهت مهلة ffmpeg. تحقق من الاتصال بالإنترنت أو حداثة ffmpeg.", reply_markup=main_menu_keyboard())
+        stdout, stderr = process.communicate()
+        logger.error(f"ffmpeg timed out: {stderr.decode()[:500]}")
+        await safe_edit(query, f"حدث خطأ: انتهت مهلة ffmpeg. التفاصيل: {stderr.decode()[:200]}", reply_markup=main_menu_keyboard())
     except Exception as e:
         logger.error(f"Error starting broadcast: {e}")
         await safe_edit(query, 
-            f"حدث خطأ أثناء بدء البث: {str(e)}\nتأكد من تحديث ffmpeg وصلاحية مفتاح RTMPS.",
+            f"حدث خطأ أثناء بدء البث: {str(e)}\nتأكد من صلاحية مفتاح RTMPS والاتصال بالإنترنت.",
             reply_markup=main_menu_keyboard()
         )
 
