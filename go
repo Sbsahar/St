@@ -13,9 +13,12 @@ logger = logging.getLogger(__name__)
 # القيم الأساسية
 TOKEN = "7942028086:AAFTxAdkR0xEriPrFZb3rVhC8tTWCFIa_PI"
 DOWNLOAD_DIR = "downloads"
+LOG_DIR = "logs"
 
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
 
 user_data = {}
 
@@ -199,6 +202,7 @@ async def start_broadcast(user_id, query, context):
     input_source = video_data["path"]
     is_live = video_data["is_live"]
 
+    log_file = os.path.join(LOG_DIR, f"ffmpeg_{channel_id}.log")
     try:
         ffmpeg_command = [
             "ffmpeg",
@@ -208,21 +212,23 @@ async def start_broadcast(user_id, query, context):
             "-c:a", "aac",
             "-b:a", "128k",
             "-f", "flv",
-            "-loglevel", "verbose",  # للحصول على تفاصيل أكثر في حالة الفشل
+            "-loglevel", "verbose",
             rtmps_url
         ]
         if is_live:
             ffmpeg_command = [x for x in ffmpeg_command if x not in ["-b:v", "2M"]]
 
         logger.info(f"Starting ffmpeg with command: {' '.join(ffmpeg_command)}")
-        process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        with open(log_file, "w") as log:
+            process = subprocess.Popen(ffmpeg_command, stdout=log, stderr=log)
         user_data[user_id]["processes"][channel_id] = process
 
-        # الانتظار للحصول على مخرجات للتحقق من النجاح
-        stdout, stderr = process.communicate(timeout=20)
-        stderr_str = stderr.decode()
-        if process.poll() is not None or "error" in stderr_str.lower():
-            raise Exception(f"ffmpeg failed with details: {stderr_str[:500]}")  # عرض تفاصيل أكثر
+        # التحقق الأولي من نجاح العملية
+        await asyncio.sleep(5)  # الانتظار 5 ثوانٍ للتأكد من البدء
+        if process.poll() is not None:
+            with open(log_file, "r") as log:
+                error_log = log.read()
+            raise Exception(f"ffmpeg failed early: {error_log[:500]}")
 
         if context.job_queue:
             context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
@@ -233,15 +239,12 @@ async def start_broadcast(user_id, query, context):
             f"🎥 بدأ البث المباشر لقناتك!\nالقناة: {channel_id}\n{'بث مباشر' if is_live else 'فيديو'}",
             reply_markup=main_menu_keyboard()
         )
-    except subprocess.TimeoutExpired:
-        process.kill()
-        stdout, stderr = process.communicate()
-        logger.error(f"ffmpeg timed out: {stderr.decode()[:500]}")
-        await safe_edit(query, f"حدث خطأ: انتهت مهلة ffmpeg. التفاصيل: {stderr.decode()[:200]}", reply_markup=main_menu_keyboard())
     except Exception as e:
         logger.error(f"Error starting broadcast: {e}")
+        with open(log_file, "r") as log:
+            error_log = log.read()
         await safe_edit(query, 
-            f"حدث خطأ أثناء بدء البث: {str(e)}\nتأكد من صلاحية مفتاح RTMPS والاتصال بالإنترنت.",
+            f"حدث خطأ أثناء بدء البث: {str(e)}\nتفاصيل الخطأ في السجل: {error_log[:200]}",
             reply_markup=main_menu_keyboard()
         )
 
