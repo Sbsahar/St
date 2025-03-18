@@ -176,8 +176,8 @@ def download_video(url):
         "cookiefile": "cookies.txt",
         "merge_output_format": "mp4",
         "postprocessors": [{
-            "key": "FFmpegMerge",
-            "when": "after_move"
+            "key": "FFmpegVideoRemuxer",
+            "preferedformat": "mp4"
         }]
     }
     try:
@@ -217,10 +217,11 @@ async def start_broadcast(user_id, query, context):
         process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         user_data[user_id]["processes"][channel_id] = process
 
-        # التحقق من نجاح البث
-        stderr = process.stderr.read().decode()
-        if "error" in stderr.lower() or process.poll() is not None:
-            raise Exception(f"ffmpeg failed: {stderr[:200]}")
+        # الانتظار للحصول على مخرجات كافية للتحقق
+        stdout, stderr = process.communicate(timeout=10)
+        stderr_str = stderr.decode()
+        if "error" in stderr_str.lower() or process.poll() is not None:
+            raise Exception(f"ffmpeg failed: {stderr_str[:200]}")
 
         if context.job_queue:
             context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
@@ -231,10 +232,14 @@ async def start_broadcast(user_id, query, context):
             f"🎥 بدأ البث المباشر لقناتك!\nالقناة: {channel_id}\n{'بث مباشر' if is_live else 'فيديو'}",
             reply_markup=main_menu_keyboard()
         )
+    except subprocess.TimeoutExpired:
+        process.kill()
+        logger.error("ffmpeg timed out")
+        await safe_edit(query, "حدث خطأ: انتهت مهلة ffmpeg. تحقق من الاتصال بالإنترنت.", reply_markup=main_menu_keyboard())
     except Exception as e:
         logger.error(f"Error starting broadcast: {e}")
         await safe_edit(query, 
-            f"حدث خطأ أثناء بدء البث: {str(e)}\nتأكد من أن مفتاح RTMPS صالح وأن ffmpeg يعمل.",
+            f"حدث خطأ أثناء بدء البث: {str(e)}\nتأكد من أن مفتاح RTMPS صالح وأن ffmpeg محدث.",
             reply_markup=main_menu_keyboard()
         )
 
