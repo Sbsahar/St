@@ -52,14 +52,18 @@ async def safe_reply(update, context, text, reply_markup=None):
 
 async def safe_edit(query, text, reply_markup=None):
     try:
-        await query.edit_message_text(text, reply_markup=reply_markup)
+        await query.edit_message_text(text[:4096], reply_markup=reply_markup)  # حد أقصى 4096 حرف
     except BadRequest as e:
         logger.warning(f"Failed to edit message: {e}")
+        await query.edit_message_text("حدث خطأ، لكن البث قد يكون مستمراً. تحقق من القناة!", reply_markup=reply_markup)
 
 async def button(update, context):
     query = update.callback_query
     user_id = query.from_user.id
-    await query.answer()
+    try:
+        await query.answer()
+    except BadRequest as e:
+        logger.warning(f"Failed to answer callback: {e}")
 
     if query.data == "add_channel":
         await safe_edit(query, 
@@ -221,24 +225,27 @@ async def start_broadcast(user_id, query, context):
                 "-re",
                 "-i", input_source,
                 "-c:v", "libx264",
-                "-preset", "veryfast",  # سرعة أعلى لتقليل التأخير
-                "-b:v", "2500k",        # معدل بت أعلى لضمان الجودة
-                "-maxrate", "3000k",    # حد أقصى لمعدل البت
-                "-bufsize", "6000k",    # حجم المخزن المؤقت
-                "-r", "30",             # معدل الإطارات 30 fps
-                "-g", "60",             # GOP size لتحسين الاستقرار
+                "-preset", "veryfast",
+                "-b:v", "2500k",
+                "-maxrate", "3000k",
+                "-bufsize", "6000k",
+                "-r", "30",
+                "-g", "30",             # Keyframe interval صغير لتوافق تلغرام
+                "-profile:v", "baseline",  # توافق أوسع
+                "-pix_fmt", "yuv420p",   # تنسيق ألوان مدعوم
                 "-c:a", "aac",
                 "-b:a", "128k",
-                "-ar", "44100",         # معدل عينة الصوت
+                "-ar", "44100",
                 "-f", "flv",
-                "-flvflags", "no_duration_filesize",  # تحسين توافق تلغرام
-                "-loglevel", "verbose"
+                "-flvflags", "no_duration_filesize"
             ]
             if is_live:
                 ffmpeg_command.extend([
                     "-reconnect", "1",
                     "-reconnect_streamed", "1",
-                    "-reconnect_delay_max", "10"  # إعادة الاتصال لمدة 10 ثوانٍ
+                    "-reconnect_delay_max", "10",
+                    "-hls_playlist_size", "5",  # تخزين 5 مقاطع (كل مقطع 2 ثانية تقريباً = 10 ثوانٍ تأخير)
+                    "-hls_time", "2"           # مدة كل مقطع 2 ثانية
                 ])
             ffmpeg_command.append(rtmps_url)
 
@@ -247,7 +254,7 @@ async def start_broadcast(user_id, query, context):
                 process = subprocess.Popen(ffmpeg_command, stdout=log, stderr=log)
             user_data[user_id]["processes"][channel_id] = process
 
-            await asyncio.sleep(15)  # الانتظار 15 ثانية للتأكد من الاستقرار
+            await asyncio.sleep(20)  # الانتظار 20 ثانية للتأكد من الاستقرار
             if process.poll() is not None:
                 with open(log_file, "r") as log:
                     error_log = log.read()
@@ -269,11 +276,11 @@ async def start_broadcast(user_id, query, context):
             with open(log_file, "r") as log:
                 error_log = log.read()
             if attempt < max_retries - 1:
-                await asyncio.sleep(retry_delay)  # الانتظار قبل المحاولة التالية
+                await asyncio.sleep(retry_delay)
                 continue
             else:
                 await safe_edit(query, 
-                    f"حدث خطأ أثناء بدء البث بعد {max_retries} محاولات: {str(e)}\nتفاصيل الخطأ: {error_log[:500]}",
+                    f"حدث خطأ بعد {max_retries} محاولات: {str(e)}\nتفاصيل: {error_log[:500]}",
                     reply_markup=main_menu_keyboard()
                 )
 
@@ -288,13 +295,12 @@ async def check_broadcast_end(context):
         if not video_data.get("is_live") and os.path.exists(video_data["path"]):
             os.remove(video_data["path"])
             logger.info(f"Deleted video: {video_data['path']}")
-
         del user_data[user_id]["processes"][channel_id]
         del user_data[user_id]["videos"][channel_id]
         try:
             await context.bot.send_message(
                 user_id,
-                "مرحباً عزيزي، الفيديو أو البث الخاص بك انتهى! 🎬\nيمكنك مشاركة رابط آخر لبثه.",
+                "مرحباً، البث انتهى! 🎬\nأرسل رابطاً آخر لبثه.",
                 reply_markup=main_menu_keyboard()
             )
         except BadRequest as e:
@@ -307,12 +313,11 @@ async def show_stop_broadcast_options(user_id, query):
     if user_id not in user_data or not user_data[user_id]["processes"]:
         await safe_edit(query, "لا يوجد بث يعمل حالياً!", reply_markup=main_menu_keyboard())
         return
-
     keyboard = [
         [InlineKeyboardButton(f"القناة: {channel_id}", callback_data=f"stop_channel_{channel_id}")]
         for channel_id in user_data[user_id]["processes"].keys()
     ] + [[InlineKeyboardButton("رجوع", callback_data="back")]]
-    await safe_edit(query, "اضغط على القناة التي تريد إيقاف البث فيها:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await safe_edit(query, "اختر القناة لإيقاف البث:", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def stop_broadcast_for_channel(user_id, channel_id, query, context):
     if channel_id in user_data[user_id]["processes"]:
@@ -329,7 +334,6 @@ async def stop_all_broadcasts(user_id, query):
     if user_id not in user_data or not user_data[user_id]["processes"]:
         await safe_edit(query, "لا يوجد بث يعمل حالياً!", reply_markup=main_menu_keyboard())
         return
-
     for channel_id, process in user_data[user_id]["processes"].items():
         process.terminate()
         video_data = user_data[user_id]["videos"].get(channel_id, {})
@@ -338,18 +342,17 @@ async def stop_all_broadcasts(user_id, query):
             logger.info(f"Deleted video: {video_data['path']}")
     user_data[user_id]["processes"].clear()
     user_data[user_id]["videos"].clear()
-    await safe_edit(query, "تم إيقاف كل عمليات البث بنجاح! 🛑", reply_markup=main_menu_keyboard())
+    await safe_edit(query, "تم إيقاف كل البث بنجاح! 🛑", reply_markup=main_menu_keyboard())
 
 async def list_channels(user_id, query):
     if user_id not in user_data or not user_data[user_id]["channels"]:
-        await safe_edit(query, "لم تقم بإضافة أي قنوات بعد!", reply_markup=main_menu_keyboard())
+        await safe_edit(query, "لم تقم بإضافة قنوات بعد!", reply_markup=main_menu_keyboard())
         return
-
     keyboard = [
         [InlineKeyboardButton(f"القناة: {channel_id}", callback_data=f"delete_channel_{channel_id}")]
         for channel_id in user_data[user_id]["channels"].keys()
     ] + [[InlineKeyboardButton("رجوع", callback_data="back")]]
-    await safe_edit(query, "القنوات المضافة:\nاختر قناة لحذفها إذا أردت:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await safe_edit(query, "القنوات المضافة:\nاختر قناة لحذفها:", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def confirm_delete_channel(user_id, channel_id, query):
     keyboard = [
@@ -357,7 +360,7 @@ async def confirm_delete_channel(user_id, channel_id, query):
         [InlineKeyboardButton("لا", callback_data=f"confirm_delete_{channel_id}_no")],
         [InlineKeyboardButton("رجوع", callback_data="back")]
     ]
-    await safe_edit(query, f"هل ترغب في حذف القناة: {channel_id} من البث المباشر؟", reply_markup=InlineKeyboardMarkup(keyboard))
+    await safe_edit(query, f"هل تريد حذف القناة: {channel_id}؟", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def handle_channel_deletion(user_id, channel_id, action, query):
     if action == "yes":
