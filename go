@@ -1,7 +1,7 @@
 import subprocess
 import os
 import logging
-import asyncio  # إضافة استيراد asyncio
+import asyncio
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 import yt_dlp
@@ -137,7 +137,15 @@ async def handle_video_url(update, context):
                 await safe_reply(update, context, "فشل استخراج تيار البث المباشر! تأكد من الرابط.")
         else:
             video_path = download_video(video_url)
-            if video_path and os.path.exists(video_path):
+            # التحقق من وجود الملف حتى لو لم يتم تحميله الآن
+            expected_path = os.path.join(DOWNLOAD_DIR, f"video_{video_info.get('title', 'unknown')}.mp4")
+            if os.path.exists(expected_path):
+                user_data[user_id]["videos"][channel_id] = {"path": expected_path, "is_live": False}
+                await safe_reply(update, context, 
+                    "الفيديو موجود بالفعل وجاهز للبث! ✅\nاضغط 'بدء البث' لبثه.",
+                    reply_markup=main_menu_keyboard()
+                )
+            elif video_path and os.path.exists(video_path):
                 user_data[user_id]["videos"][channel_id] = {"path": video_path, "is_live": False}
                 await safe_reply(update, context, 
                     "نجح تحميل الفيديو إلى الخادم! ✅\nالفيديو جاهز للبث. اضغط 'بدء البث' لبثه.",
@@ -224,12 +232,12 @@ async def start_broadcast(user_id, query, context):
             process = subprocess.Popen(ffmpeg_command, stdout=log, stderr=log)
         user_data[user_id]["processes"][channel_id] = process
 
-        # التحقق الأولي من نجاح العملية
-        await asyncio.sleep(5)  # الانتظار 5 ثوانٍ للتأكد من البدء
+        # الانتظار لمدة أطول للتأكد من الاتصال
+        await asyncio.sleep(10)  # زيادة الانتظار إلى 10 ثوانٍ
         if process.poll() is not None:
             with open(log_file, "r") as log:
                 error_log = log.read()
-            raise Exception(f"ffmpeg failed early: {error_log[:500]}")
+            raise Exception(f"ffmpeg failed early: {error_log}")
 
         if context.job_queue:
             context.job_queue.run_once(check_broadcast_end, 1, data={"user_id": user_id, "channel_id": channel_id})
@@ -245,7 +253,7 @@ async def start_broadcast(user_id, query, context):
         with open(log_file, "r") as log:
             error_log = log.read()
         await safe_edit(query, 
-            f"حدث خطأ أثناء بدء البث: {str(e)}\nتفاصيل الخطأ في السجل: {error_log[:200]}",
+            f"حدث خطأ أثناء بدء البث: {str(e)}\nتفاصيل الخطأ في السجل: {error_log[:500]}",  # زيادة الحد إلى 500
             reply_markup=main_menu_keyboard()
         )
 
