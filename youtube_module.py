@@ -231,6 +231,8 @@ class YoutubeModule:
             'quiet': False,
             'no_warnings': False,
             'ignoreerrors': False,
+            'extractor_retries': 10,  # إعادة محاولة استخراج التنسيقات
+            'fragment_retries': 10,   # إعادة محاولة تنزيل الأجزاء
         }
 
         if download_type == 'audio':
@@ -259,19 +261,22 @@ class YoutubeModule:
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 # التحقق من التنسيقات المتاحة أولاً
-                info = ydl.extract_info(f"https://www.youtube.com/watch?v={url}", download=False)
+                video_url = f"https://www.youtube.com/watch?v={url}"
+                info = ydl.extract_info(video_url, download=False)
+                
+                # إذا لم يتم العثور على تنسيقات صالحة، جرب طريقة بديلة
                 if not info.get('formats') or all('acodec' not in f or f['acodec'] == 'none' for f in info['formats']):
                     self.bot.edit_message_text(
-                        '<i>جاري المحاولة بطريقة بديلة...</i>',
+                        '<i>التنسيقات المطلوبة غير متاحة، جاري المحاولة بأي تنسيق متاح...</i>',
                         chat_id=call.message.chat.id,
                         message_id=loading_msg.message_id,
                         parse_mode='HTML'
                     )
                     ydl_opts['format'] = 'best'  # استخدام أي تنسيق متاح
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(f"https://www.youtube.com/watch?v={url}", download=True)
+                        info = ydl.extract_info(video_url, download=True)
                 else:
-                    info = ydl.extract_info(f"https://www.youtube.com/watch?v={url}", download=True)
+                    info = ydl.extract_info(video_url, download=True)
 
                 file_path = ydl.prepare_filename(info)
 
@@ -308,7 +313,7 @@ class YoutubeModule:
 
         except Exception as e:
             self.bot.edit_message_text(
-                f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو غير متاح، جرب فيديو آخر</i>',
+                f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو هناك مشكلة في الاتصال، جرب فيديو آخر</i>',
                 chat_id=call.message.chat.id,
                 message_id=loading_msg.message_id,
                 parse_mode='HTML'
