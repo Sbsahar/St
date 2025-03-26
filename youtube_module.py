@@ -7,7 +7,7 @@ from telebot import types
 import ffmpeg
 import logging
 
-# إعداد التسجيل لتتبع الأخطاء
+# إعداد التسجيل
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class YoutubeModule:
@@ -205,7 +205,9 @@ class YoutubeModule:
             'ignoreerrors': False,
             'extractor_retries': 10,
             'fragment_retries': 10,
-            'force_generic_extractor': True,  # محاولة استخدام مستخرج عام
+            'force_generic_extractor': True,
+            'simulate': False,  # التأكد من التحميل الفعلي
+            'skip_unavailable_fragments': True,
         }
 
         if download_type == 'audio':
@@ -236,17 +238,17 @@ class YoutubeModule:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 # التحقق من التنسيقات المتاحة
                 info = ydl.extract_info(video_url, download=False)
-                logging.info(f"Available formats for {url}: {info.get('formats')}")
+                logging.info(f"Available formats for {url}: {len(info.get('formats', []))} formats found")
 
                 if not info.get('formats') or all('acodec' not in f or f['acodec'] == 'none' for f in info['formats']):
-                    logging.warning(f"No valid formats found for {url}, trying fallback...")
+                    logging.warning(f"No valid audio/video formats for {url}, falling back to 'best'")
                     self.bot.edit_message_text(
                         '<i>التنسيقات المطلوبة غير متاحة، جاري المحاولة بأي تنسيق متاح...</i>',
                         chat_id=call.message.chat.id,
                         message_id=loading_msg.message_id,
                         parse_mode='HTML'
                     )
-                    time.sleep(2)  # تأخير لتجنب 429
+                    time.sleep(2)
                     ydl_opts['format'] = 'best'
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(video_url, download=True)
@@ -257,10 +259,11 @@ class YoutubeModule:
                         message_id=loading_msg.message_id,
                         parse_mode='HTML'
                     )
-                    time.sleep(2)  # تأخير لتجنب 429
+                    time.sleep(2)
                     info = ydl.extract_info(video_url, download=True)
 
-                file_path = ydl.prepare hypnosis_filename(info)
+                file_path = ydl.prepare_filename(info)
+                logging.info(f"File path prepared: {file_path}")
 
                 if download_type == 'audio':
                     file_path = file_path.rsplit('.', 1)[0] + '.mp3'
@@ -294,7 +297,7 @@ class YoutubeModule:
                     pass
 
         except Exception as e:
-            logging.error(f"Download error: {str(e)}")
+            logging.error(f"Download error for {url}: {str(e)}")
             self.bot.edit_message_text(
                 f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو هناك مشكلة مؤقتة، جرب لاحقًا أو استخدم فيديو آخر</i>',
                 chat_id=call.message.chat.id,
@@ -315,5 +318,7 @@ class YoutubeModule:
                         cookie_name = parts[5].strip()
                         cookie_value = parts[6].strip()
                         cookies_dict[cookie_name] = cookie_value
+                logging.info(f"Loaded {len(cookies_dict)} cookies from {file_path}")
                 return cookies_dict
+        logging.warning(f"Cookies file {file_path} not found")
         return None
