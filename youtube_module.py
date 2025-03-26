@@ -5,6 +5,10 @@ import threading
 from googleapiclient.discovery import build
 from telebot import types
 import ffmpeg
+import logging
+
+# إعداد التسجيل لتتبع الأخطاء
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class YoutubeModule:
     def __init__(self, bot, youtube_api_key, bot_username):
@@ -138,22 +142,6 @@ class YoutubeModule:
                 loading_msg = self.bot.send_message(
                     chat_id, '<i>جاري التحميل... 🔄</i>', parse_mode='HTML'
                 )
-
-                progress_stages = [
-                    "█▒▒▒▒▒▒▒▒▒10%", "██▒▒▒▒▒▒▒▒20%", "███▒▒▒▒▒▒▒30%",
-                    "████▒▒▒▒▒▒40%", "█████▒▒▒▒▒▒50%", "████████▒▒80%",
-                    "██████████100%", "تم التحميل 🎶 جاري الرفع..."
-                ]
-
-                for stage in progress_stages:
-                    time.sleep(1)
-                    self.bot.edit_message_text(
-                        f"<i>{stage}</i>",
-                        chat_id=chat_id,
-                        message_id=loading_msg.message_id,
-                        parse_mode='HTML'
-                    )
-
                 self.download_media(call, 'audio', video_id, 'bestaudio', loading_msg)
 
             elif data[0] == "youtube_download_video":
@@ -161,22 +149,6 @@ class YoutubeModule:
                 loading_msg = self.bot.send_message(
                     chat_id, '<i>جاري التحميل... 🔄</i>', parse_mode='HTML'
                 )
-
-                progress_stages = [
-                    "█▒▒▒▒▒▒▒▒▒10%", "██▒▒▒▒▒▒▒▒20%", "███▒▒▒▒▒▒▒30%",
-                    "████▒▒▒▒▒▒40%", "█████▒▒▒▒▒▒50%", "████████▒▒80%",
-                    "██████████100%", "تم التحميل 🎶 جاري الرفع..."
-                ]
-
-                for stage in progress_stages:
-                    time.sleep(1)
-                    self.bot.edit_message_text(
-                        f"<i>{stage}</i>",
-                        chat_id=chat_id,
-                        message_id=loading_msg.message_id,
-                        parse_mode='HTML'
-                    )
-
                 self.download_media(call, 'video', video_id, 'hd', loading_msg)
 
     def split_file(self, file_path, max_size_mb, output_prefix):
@@ -231,8 +203,9 @@ class YoutubeModule:
             'quiet': False,
             'no_warnings': False,
             'ignoreerrors': False,
-            'extractor_retries': 10,  # إعادة محاولة استخراج التنسيقات
-            'fragment_retries': 10,   # إعادة محاولة تنزيل الأجزاء
+            'extractor_retries': 10,
+            'fragment_retries': 10,
+            'force_generic_extractor': True,  # محاولة استخدام مستخرج عام
         }
 
         if download_type == 'audio':
@@ -259,26 +232,35 @@ class YoutubeModule:
             max_size_mb = 30
 
         try:
+            video_url = f"https://www.youtube.com/watch?v={url}"
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                # التحقق من التنسيقات المتاحة أولاً
-                video_url = f"https://www.youtube.com/watch?v={url}"
+                # التحقق من التنسيقات المتاحة
                 info = ydl.extract_info(video_url, download=False)
-                
-                # إذا لم يتم العثور على تنسيقات صالحة، جرب طريقة بديلة
+                logging.info(f"Available formats for {url}: {info.get('formats')}")
+
                 if not info.get('formats') or all('acodec' not in f or f['acodec'] == 'none' for f in info['formats']):
+                    logging.warning(f"No valid formats found for {url}, trying fallback...")
                     self.bot.edit_message_text(
                         '<i>التنسيقات المطلوبة غير متاحة، جاري المحاولة بأي تنسيق متاح...</i>',
                         chat_id=call.message.chat.id,
                         message_id=loading_msg.message_id,
                         parse_mode='HTML'
                     )
-                    ydl_opts['format'] = 'best'  # استخدام أي تنسيق متاح
+                    time.sleep(2)  # تأخير لتجنب 429
+                    ydl_opts['format'] = 'best'
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(video_url, download=True)
                 else:
+                    self.bot.edit_message_text(
+                        '<i>جاري التحميل...</i>',
+                        chat_id=call.message.chat.id,
+                        message_id=loading_msg.message_id,
+                        parse_mode='HTML'
+                    )
+                    time.sleep(2)  # تأخير لتجنب 429
                     info = ydl.extract_info(video_url, download=True)
 
-                file_path = ydl.prepare_filename(info)
+                file_path = ydl.prepare hypnosis_filename(info)
 
                 if download_type == 'audio':
                     file_path = file_path.rsplit('.', 1)[0] + '.mp3'
@@ -312,8 +294,9 @@ class YoutubeModule:
                     pass
 
         except Exception as e:
+            logging.error(f"Download error: {str(e)}")
             self.bot.edit_message_text(
-                f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو هناك مشكلة في الاتصال، جرب فيديو آخر</i>',
+                f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو هناك مشكلة مؤقتة، جرب لاحقًا أو استخدم فيديو آخر</i>',
                 chat_id=call.message.chat.id,
                 message_id=loading_msg.message_id,
                 parse_mode='HTML'
