@@ -228,12 +228,15 @@ class YoutubeModule:
             'cookiefile': cookies_file_path,
             'cookies': cookies,
             'noplaylist': True,
+            'quiet': False,
+            'no_warnings': False,
+            'ignoreerrors': False,
         }
 
         if download_type == 'audio':
             ydl_opts = {
                 **base_ydl_opts,
-                'format': 'bestaudio/best[ext=mp3]/best',
+                'format': 'bestaudio/best[ext=mp3]/best[ext=m4a]/best',
                 'postprocessors': [{
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'mp3',
@@ -244,7 +247,7 @@ class YoutubeModule:
         elif download_type == 'video':
             ydl_opts = {
                 **base_ydl_opts,
-                'format': 'bestvideo[height<=480]+bestaudio/best[height<=480]/best',
+                'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]/best[ext=mp4]/best',
                 'postprocessors': [{
                     'key': 'FFmpegVideoConvertor',
                     'preferedformat': 'mp4'
@@ -255,7 +258,21 @@ class YoutubeModule:
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(f"https://www.youtube.com/watch?v={url}", download=True)
+                # التحقق من التنسيقات المتاحة أولاً
+                info = ydl.extract_info(f"https://www.youtube.com/watch?v={url}", download=False)
+                if not info.get('formats') or all('acodec' not in f or f['acodec'] == 'none' for f in info['formats']):
+                    self.bot.edit_message_text(
+                        '<i>جاري المحاولة بطريقة بديلة...</i>',
+                        chat_id=call.message.chat.id,
+                        message_id=loading_msg.message_id,
+                        parse_mode='HTML'
+                    )
+                    ydl_opts['format'] = 'best'  # استخدام أي تنسيق متاح
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(f"https://www.youtube.com/watch?v={url}", download=True)
+                else:
+                    info = ydl.extract_info(f"https://www.youtube.com/watch?v={url}", download=True)
+
                 file_path = ydl.prepare_filename(info)
 
                 if download_type == 'audio':
@@ -291,7 +308,7 @@ class YoutubeModule:
 
         except Exception as e:
             self.bot.edit_message_text(
-                f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>جرب مرة أخرى أو استخدم فيديو آخر</i>',
+                f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو غير متاح، جرب فيديو آخر</i>',
                 chat_id=call.message.chat.id,
                 message_id=loading_msg.message_id,
                 parse_mode='HTML'
@@ -299,7 +316,7 @@ class YoutubeModule:
 
     def load_cookies_from_file(self, file_path):
         if os.path.exists(file_path):
-            with open(file_path,'r') as file:
+            with open(file_path, 'r') as file:
                 cookies = file.readlines()
                 cookies_dict = {}
                 for line in cookies:
