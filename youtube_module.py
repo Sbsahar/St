@@ -206,8 +206,9 @@ class YoutubeModule:
             'extractor_retries': 10,
             'fragment_retries': 10,
             'force_generic_extractor': True,
-            'simulate': False,  # التأكد من التحميل الفعلي
+            'simulate': False,
             'skip_unavailable_fragments': True,
+            'youtube_include_dash': True,  # محاولة استخدام تنسيقات DASH
         }
 
         if download_type == 'audio':
@@ -239,6 +240,8 @@ class YoutubeModule:
                 # التحقق من التنسيقات المتاحة
                 info = ydl.extract_info(video_url, download=False)
                 logging.info(f"Available formats for {url}: {len(info.get('formats', []))} formats found")
+                available_formats = [f.get('format_id') for f in info.get('formats', [])]
+                logging.info(f"Format IDs: {available_formats}")
 
                 if not info.get('formats') or all('acodec' not in f or f['acodec'] == 'none' for f in info['formats']):
                     logging.warning(f"No valid audio/video formats for {url}, falling back to 'best'")
@@ -299,7 +302,7 @@ class YoutubeModule:
         except Exception as e:
             logging.error(f"Download error for {url}: {str(e)}")
             self.bot.edit_message_text(
-                f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو هناك مشكلة مؤقتة، جرب لاحقًا أو استخدم فيديو آخر</i>',
+                f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو هناك مشكلة في YouTube، جرب لاحقًا أو استخدم فيديو آخر</i>',
                 chat_id=call.message.chat.id,
                 message_id=loading_msg.message_id,
                 parse_mode='HTML'
