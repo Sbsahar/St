@@ -181,17 +181,15 @@ class YoutubeModule:
 
     def split_file(self, file_path, max_size_mb, output_prefix):
         """تقسيم الملف إلى أجزاء بحجم أقصى محدد (بالميغابايت)."""
-        max_size_bytes = max_size_mb * 1024 * 1024  # تحويل MB إلى Bytes
+        max_size_bytes = max_size_mb * 1024 * 1024
         file_size = os.path.getsize(file_path)
         
         if file_size <= max_size_bytes:
-            return [file_path]  # إذا كان الحجم أقل من الحد، لا داعي للتقسيم
+            return [file_path]
 
-        # حساب المدة الإجمالية للملف باستخدام ffmpeg
         probe = ffmpeg.probe(file_path)
         duration = float(probe['format']['duration'])
         
-        # حساب عدد الأجزاء بناءً على الحجم الأقصى
         num_parts = int((file_size + max_size_bytes - 1) // max_size_bytes)
         part_duration = duration / num_parts
         
@@ -207,7 +205,7 @@ class YoutubeModule:
             )
             output_files.append(output_file)
         
-        os.remove(file_path)  # حذف الملف الأصلي بعد التقسيم
+        os.remove(file_path)
         return output_files
 
     def download_media(self, call, download_type, url, quality, loading_msg):
@@ -223,44 +221,45 @@ class YoutubeModule:
             )
             return
 
+        base_ydl_opts = {
+            'outtmpl': '%(title)s.%(ext)s',
+            'timeout': 999999999,
+            'retries': 10,
+            'cookiefile': cookies_file_path,
+            'cookies': cookies,
+            'noplaylist': True,
+        }
+
         if download_type == 'audio':
             ydl_opts = {
-                'outtmpl': '%(title)s.%(ext)s',
-                'format': 'bestaudio/best',
+                **base_ydl_opts,
+                'format': 'bestaudio/best[ext=mp3]/best',
                 'postprocessors': [{
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'mp3',
-                    'preferredquality': '192'
+                    'preferredquality': '192',
                 }],
-                'timeout': 999999999,
-                'retries': 3,
-                'cookiefile': cookies_file_path,
-                'cookies': cookies,
             }
-            max_size_mb = 24  # الحد الأقصى للصوت
+            max_size_mb = 24
         elif download_type == 'video':
             ydl_opts = {
-                'outtmpl': '%(title)s.mp4',
-                'format': 'bestvideo[ext=mp4][height<=480]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                **base_ydl_opts,
+                'format': 'bestvideo[height<=480]+bestaudio/best[height<=480]/best',
                 'postprocessors': [{
                     'key': 'FFmpegVideoConvertor',
                     'preferedformat': 'mp4'
                 }],
                 'merge_output_format': 'mp4',
-                'timeout': 999999999,
-                'retries': 3,
-                'cookiefile': cookies_file_path,
-                'cookies': cookies,
             }
-            max_size_mb = 30  # الحد الأقصى للفيديو
+            max_size_mb = 30
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=True)
+                info = ydl.extract_info(f"https://www.youtube.com/watch?v={url}", download=True)
                 file_path = ydl.prepare_filename(info)
 
                 if download_type == 'audio':
-                    file_path = file_path.replace('.webm', '.mp3')
+                    file_path = file_path.rsplit('.', 1)[0] + '.mp3'
                     output_prefix = file_path.replace('.mp3', '')
                     files_to_send = self.split_file(file_path, max_size_mb, output_prefix)
                     for file in files_to_send:
@@ -269,7 +268,7 @@ class YoutubeModule:
                                 call.message.chat.id, f,
                                 caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙"
                             )
-                        os.remove(file)  # حذف الجزء بعد الإرسال
+                        os.remove(file)
                 elif download_type == 'video':
                     output_prefix = file_path.replace('.mp4', '')
                     files_to_send = self.split_file(file_path, max_size_mb, output_prefix)
@@ -279,7 +278,7 @@ class YoutubeModule:
                                 call.message.chat.id, f,
                                 caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙"
                             )
-                        os.remove(file)  # حذف الجزء بعد الإرسال
+                        os.remove(file)
 
                 time.sleep(2)
                 self.bot.delete_message(call.message.chat.id, loading_msg.message_id)
@@ -292,7 +291,7 @@ class YoutubeModule:
 
         except Exception as e:
             self.bot.edit_message_text(
-                f'<i>خطأ أثناء التحميل:</i> {e}',
+                f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>جرب مرة أخرى أو استخدم فيديو آخر</i>',
                 chat_id=call.message.chat.id,
                 message_id=loading_msg.message_id,
                 parse_mode='HTML'
@@ -300,7 +299,7 @@ class YoutubeModule:
 
     def load_cookies_from_file(self, file_path):
         if os.path.exists(file_path):
-            with open(file_path, 'r') as file:
+            with open(file_path,'r') as file:
                 cookies = file.readlines()
                 cookies_dict = {}
                 for line in cookies:
