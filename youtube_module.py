@@ -149,7 +149,7 @@ class YoutubeModule:
                 loading_msg = self.bot.send_message(
                     chat_id, '<i>جاري التحميل... 🔄</i>', parse_mode='HTML'
                 )
-                self.download_media(call, 'video', video_id, 'hd', loading_msg)
+                self.download_media(call, 'video', video_id, 'bestvideo[height<=720]+bestaudio', loading_msg)
 
     def split_file(self, file_path, max_size_mb, output_prefix):
         """تقسيم الملف إلى أجزاء بحجم أقصى محدد (بالميغابايت)."""
@@ -180,7 +180,7 @@ class YoutubeModule:
         os.remove(file_path)
         return output_files
 
-    def download_media(self, call, download_type, url, quality, loading_msg):
+    def download_media(self, call, download_type, video_id, quality, loading_msg):
         cookies_file_path = 'cookies.txt'
         cookies = self.load_cookies_from_file(cookies_file_path)
 
@@ -205,16 +205,20 @@ class YoutubeModule:
             'ignoreerrors': False,
             'extractor_retries': 10,
             'fragment_retries': 10,
-            'force_generic_extractor': True,
+            'force_generic_extractor': False,
             'simulate': False,
             'skip_unavailable_fragments': True,
-            'youtube_include_dash': True,  # محاولة استخدام تنسيقات DASH
+            'youtube_include_dash': True,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
+            },
         }
 
         if download_type == 'audio':
             ydl_opts = {
                 **base_ydl_opts,
-                'format': 'bestaudio/best[ext=mp3]/best[ext=m4a]/best',
+                'format': 'bestaudio[ext=mp3]/bestaudio[ext=m4a]/bestaudio/best',
                 'postprocessors': [{
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'mp3',
@@ -225,26 +229,27 @@ class YoutubeModule:
         elif download_type == 'video':
             ydl_opts = {
                 **base_ydl_opts,
-                'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]/best[ext=mp4]/best',
+                'format': 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
                 'postprocessors': [{
                     'key': 'FFmpegVideoConvertor',
-                    'preferedformat': 'mp4'
+                    'preferedformat': 'mp4',
                 }],
                 'merge_output_format': 'mp4',
             }
             max_size_mb = 30
 
         try:
-            video_url = f"https://www.youtube.com/watch?v={url}"
+            video_url = f"https://www.youtube.com/watch?v={video_id}"
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 # التحقق من التنسيقات المتاحة
                 info = ydl.extract_info(video_url, download=False)
-                logging.info(f"Available formats for {url}: {len(info.get('formats', []))} formats found")
+                logging.info(f"Available formats for {video_id}: {len(info.get('formats', []))} formats found")
                 available_formats = [f.get('format_id') for f in info.get('formats', [])]
                 logging.info(f"Format IDs: {available_formats}")
 
-                if not info.get('formats') or all('acodec' not in f or f['acodec'] == 'none' for f in info['formats']):
-                    logging.warning(f"No valid audio/video formats for {url}, falling back to 'best'")
+                # إذا لم تكن هناك تنسيقات صالحة، جرب تنسيقًا بديلًا
+                if not info.get('formats') or all('acodec' not in f or f['acodec'] == 'none' for f in info.get('formats', [])):
+                    logging.warning(f"No valid audio/video formats for {video_id}, falling back to 'best'")
                     self.bot.edit_message_text(
                         '<i>التنسيقات المطلوبة غير متاحة، جاري المحاولة بأي تنسيق متاح...</i>',
                         chat_id=call.message.chat.id,
@@ -300,7 +305,7 @@ class YoutubeModule:
                     pass
 
         except Exception as e:
-            logging.error(f"Download error for {url}: {str(e)}")
+            logging.error(f"Download error for {video_id}: {str(e)}")
             self.bot.edit_message_text(
                 f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو هناك مشكلة في YouTube، جرب لاحقًا أو استخدم فيديو آخر</i>',
                 chat_id=call.message.chat.id,
