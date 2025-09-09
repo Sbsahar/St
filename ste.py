@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
     
     
 
-TOKEN = '7588670003:AAGJoNQI5XXS5mE4WW3i1DmgcMTpCzgJ8Qs'
+TOKEN = '7588670003:AAHa984Pqxty1Iv30HqIqR7sI1JET20XPj8'
 YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
 BOT_USERNAME = '@SY_SBbot'
 CHANNEL_URL = 'https://t.me/SYR_SB'
