@@ -33,13 +33,13 @@ logger = logging.getLogger(__name__)
     
     
 
-TOKEN = '7588670003:AAHMP6Bg7hOqCsKouQ3sEFNvpEd2p1W8KWQ'
+TOKEN = '7588670003:AAGvfATw4v2SHVxG3mrocydqL1D-JUJjROg'
 YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
 BOT_USERNAME = '@SY_SBbot'
 CHANNEL_URL = 'https://t.me/SYR_SB'
 CHANNEL_USERNAME = 'SYR_SB' 
 DEVELOPER_CHAT_ID = '6789179634'
-VIDEO_URL = "https://t.me/c/2269616828/5" 
+VIDEO_URL = "https://t.me/vedio963/2" 
 bot = telebot.TeleBot(TOKEN)
 youtube_module = YoutubeModule(bot, YOUTUBE_API_KEY, BOT_USERNAME)
 youtube_module.setup_handlers()
@@ -2614,11 +2614,11 @@ def syrian_reply(message):
     bot.reply_to(message, random.choice(syrian_replies), parse_mode="HTML")
 @bot.message_handler(func=lambda message: 'يلعن روحه' in message.text)
 def send_audio(message):
-    audio_file_id = 'https://t.me/srevbo67/6' 
+    audio_file_id = 'https://t.me/vedio963/4' 
     bot.send_audio(message.chat.id, audio_file_id, caption="يلعن روحه بقبره")  
 @bot.message_handler(func=lambda message: 'مطور' in message.text or 'المطور' in message.text)
 def send_animation(message):
-    animation_file_id = 'https://t.me/srevbo67/276'  # رابط الصورة المتحركة (GIF)
+    animation_file_id = 'https://t.me/vedio963/6'  # رابط الصورة المتحركة (GIF)
 
     caption = """<b>✦ ⚡مـطورة الـبوت ✦</b>  
 🚀 <b>𝐒𝐎𝐔𝐑𝐂𝐄 𝐒𝐁</b> ⚡  .
