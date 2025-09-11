@@ -33,13 +33,13 @@ logger = logging.getLogger(__name__)
     
     
 
-TOKEN = '7588670003:AAHa984Pqxty1Iv30HqIqR7sI1JET20XPj8'
+TOKEN = '7588670003:AAHMP6Bg7hOqCsKouQ3sEFNvpEd2p1W8KWQ'
 YOUTUBE_API_KEY = 'AIzaSyBG81yezyxy-SE4cd_-JCK55gEzHkPV9aw'
 BOT_USERNAME = '@SY_SBbot'
 CHANNEL_URL = 'https://t.me/SYR_SB'
 CHANNEL_USERNAME = 'SYR_SB' 
 DEVELOPER_CHAT_ID = '6789179634'
-VIDEO_URL = "https://t.me/srevbo67/5" 
+VIDEO_URL = "https://t.me/c/2269616828/5" 
 bot = telebot.TeleBot(TOKEN)
 youtube_module = YoutubeModule(bot, YOUTUBE_API_KEY, BOT_USERNAME)
 youtube_module.setup_handlers()
