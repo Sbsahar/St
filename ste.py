@@ -39,7 +39,7 @@ BOT_USERNAME = '@SY_SBbot'
 CHANNEL_URL = 'https://t.me/SYR_SB'
 CHANNEL_USERNAME = 'SYR_SB' 
 DEVELOPER_CHAT_ID = '6789179634'
-VIDEO_URL = "https://t.me/vedio963/2" 
+VIDEO_URL = "https://64.media.tumblr.com/3cfa430aea644288ede38845e8f40f18/tumblr_owse940yxU1w2zpqco1_540.gif" 
 bot = telebot.TeleBot(TOKEN)
 youtube_module = YoutubeModule(bot, YOUTUBE_API_KEY, BOT_USERNAME)
 youtube_module.setup_handlers()
