@@ -2618,7 +2618,7 @@ def send_audio(message):
     bot.send_audio(message.chat.id, audio_file_id, caption="يلعن روحه بقبره")  
 @bot.message_handler(func=lambda message: 'مطور' in message.text or 'المطور' in message.text)
 def send_animation(message):
-    animation_file_id = 'https://t.me/vedio963/6'  # رابط الصورة المتحركة (GIF)
+    animation_file_id = 'https://i.pinimg.com/originals/36/da/21/36da21c6d627e08e04d0e66680b938ad.gif'  # رابط الصورة المتحركة (GIF)
 
     caption = """<b>✦ ⚡مـطورة الـبوت ✦</b>  
 🚀 <b>𝐒𝐎𝐔𝐑𝐂𝐄 𝐒𝐁</b> ⚡  .
