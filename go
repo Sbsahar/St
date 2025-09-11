@@ -12,7 +12,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # القيم الأساسية
-TOKEN = "7942028086:AAFTxAdkR0xEriPrFZb3rVhC8tTWCFIa_PI"
+TOKEN = "7911974989:AAE3OOUukFD2neHAG6u1EhMpzq77UpKuiOM"
 DOWNLOAD_DIR = "downloads"
 LOG_DIR = "logs"
 
