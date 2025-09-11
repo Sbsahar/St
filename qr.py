@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 TOKEN = "7911974989:AAE3OOUukFD2neHAG6u1EhMpzq77UpKuiOM"
 DATA_FILE = "user_data.json"
 #هنا تحط رابط اي صورة جميلة للقرأن الكريم من جوجل دور على صور جميلة انسخ رابكها وخلي هنا بلاسفل لتظهر عند التشغيل
-BROADCAST_IMAGE = "رابط الصورة"
+BROADCAST_IMAGE = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRLAl9z7uNZClHpJg3B7VfaXg1hLqV0mzNOjZyADXBQIqNFzlEDv1APAl0&s=10"
 
 #هنا بتقدر تضيف اذاعات جديدة اذا عندك
 STATIONS = {
