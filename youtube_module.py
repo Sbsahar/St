@@ -135,7 +135,7 @@ class YoutubeModule:
                         reply_markup=markup
                     )
                 except Exception as e:
-                    pass
+                    logging.error(f"Error editing message media: {str(e)}")
 
             elif data[0] == "youtube_download":
                 video_id = data[1]
@@ -182,23 +182,24 @@ class YoutubeModule:
 
     def download_media(self, call, download_type, video_id, quality, loading_msg):
         cookies_file_path = 'cookies.txt'
-        cookies = self.load_cookies_from_file(cookies_file_path)
-
-        if not cookies:
+        
+        # تحقق من وجود ملف الكوكيز
+        if not self.load_cookies_from_file(cookies_file_path):
             self.bot.edit_message_text(
-                '<i>فشل تحميل الكوكيز! يرجى التأكد من الملف.</i>',
+                '<i>ملف الكوكيز غير موجود أو فشل تحميله! يرجى التأكد من cookies.txt.</i>',
                 chat_id=call.message.chat.id,
                 message_id=loading_msg.message_id,
                 parse_mode='HTML'
             )
             return
 
+        logging.info(f"Attempting to download video {video_id} with cookies file {cookies_file_path}")
+
         base_ydl_opts = {
             'outtmpl': '%(title)s.%(ext)s',
             'timeout': 999999999,
             'retries': 10,
-            'cookiefile': cookies_file_path,
-            'cookies': cookies,
+            'cookiefile': cookies_file_path,  # الاعتماد فقط على ملف الكوكيز
             'noplaylist': True,
             'quiet': False,
             'no_warnings': False,
@@ -209,6 +210,7 @@ class YoutubeModule:
             'simulate': False,
             'skip_unavailable_fragments': True,
             'youtube_include_dash': True,
+            'player_client': ['web', 'web_music'],  # دعم أفضل للكوكيز
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Accept-Language': 'en-US,en;q=0.9',
@@ -238,95 +240,92 @@ class YoutubeModule:
             }
             max_size_mb = 30
 
-        try:
-            video_url = f"https://www.youtube.com/watch?v={video_id}"
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                # التحقق من التنسيقات المتاحة
-                info = ydl.extract_info(video_url, download=False)
-                logging.info(f"Available formats for {video_id}: {len(info.get('formats', []))} formats found")
-                available_formats = [f.get('format_id') for f in info.get('formats', [])]
-                logging.info(f"Format IDs: {available_formats}")
+        for attempt in range(3):  # إعادة المحاولة حتى 3 مرات
+            try:
+                video_url = f"https://www.youtube.com/watch?v={video_id}"
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    logging.info(f"Attempt {attempt + 1}: Extracting info for {video_url}")
+                    info = ydl.extract_info(video_url, download=False)
+                    logging.info(f"Available formats for {video_id}: {len(info.get('formats', []))} formats found")
+                    available_formats = [f.get('format_id') for f in info.get('formats', [])]
+                    logging.info(f"Format IDs: {available_formats}")
 
-                # إذا لم تكن هناك تنسيقات صالحة، جرب تنسيقًا بديلًا
-                if not info.get('formats') or all('acodec' not in f or f['acodec'] == 'none' for f in info.get('formats', [])):
-                    logging.warning(f"No valid audio/video formats for {video_id}, falling back to 'best'")
-                    self.bot.edit_message_text(
-                        '<i>التنسيقات المطلوبة غير متاحة، جاري المحاولة بأي تنسيق متاح...</i>',
-                        chat_id=call.message.chat.id,
-                        message_id=loading_msg.message_id,
-                        parse_mode='HTML'
-                    )
-                    time.sleep(2)
-                    ydl_opts['format'] = 'best'
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    if not info.get('formats') or all('acodec' not in f or f['acodec'] == 'none' for f in info.get('formats', [])):
+                        logging.warning(f"No valid audio/video formats for {video_id}, falling back to 'best'")
+                        self.bot.edit_message_text(
+                            '<i>التنسيقات المطلوبة غير متاحة، جاري المحاولة بأي تنسيق متاح...</i>',
+                            chat_id=call.message.chat.id,
+                            message_id=loading_msg.message_id,
+                            parse_mode='HTML'
+                        )
+                        time.sleep(2)
+                        ydl_opts['format'] = 'best'
+                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                            info = ydl.extract_info(video_url, download=True)
+                    else:
+                        self.bot.edit_message_text(
+                            '<i>جاري التحميل...</i>',
+                            chat_id=call.message.chat.id,
+                            message_id=loading_msg.message_id,
+                            parse_mode='HTML'
+                        )
+                        time.sleep(2)
                         info = ydl.extract_info(video_url, download=True)
-                else:
+
+                    file_path = ydl.prepare_filename(info)
+                    logging.info(f"File path prepared: {file_path}")
+
+                    if download_type == 'audio':
+                        file_path = file_path.rsplit('.', 1)[0] + '.mp3'
+                        output_prefix = file_path.replace('.mp3', '')
+                        files_to_send = self.split_file(file_path, max_size_mb, output_prefix)
+                        for file in files_to_send:
+                            with open(file, 'rb') as f:
+                                self.bot.send_audio(
+                                    call.message.chat.id, f,
+                                    caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙"
+                                )
+                            os.remove(file)
+                    elif download_type == 'video':
+                        output_prefix = file_path.replace('.mp4', '')
+                        files_to_send = self.split_file(file_path, max_size_mb, output_prefix)
+                        for file in files_to_send:
+                            with open(file, 'rb') as f:
+                                self.bot.send_video(
+                                    call.message.chat.id, f,
+                                    caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙"
+                                )
+                            os.remove(file)
+
+                    time.sleep(2)
+                    self.bot.delete_message(call.message.chat.id, loading_msg.message_id)
+
+                    time.sleep(5)
+                    try:
+                        self.bot.delete_message(call.message.chat.id, call.message.message_id)
+                    except Exception:
+                        pass
+                    break  # لو نجح، أخرج من اللوب
+
+            except Exception as e:
+                logging.error(f"Attempt {attempt + 1} failed for {video_id}: {str(e)}")
+                if attempt < 2:  # إذا لسه في محاولات
+                    time.sleep(5)  # انتظر 5 ثواني قبل المحاولة التالية
+                    continue
+                else:  # لو فشل بعد 3 محاولات
                     self.bot.edit_message_text(
-                        '<i>جاري التحميل...</i>',
+                        f'<i>خطأ أثناء التحميل بعد 3 محاولات: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو هناك مشكلة في YouTube، جرب لاحقًا أو استخدم فيديو آخر</i>',
                         chat_id=call.message.chat.id,
                         message_id=loading_msg.message_id,
                         parse_mode='HTML'
                     )
-                    time.sleep(2)
-                    info = ydl.extract_info(video_url, download=True)
-
-                file_path = ydl.prepare_filename(info)
-                logging.info(f"File path prepared: {file_path}")
-
-                if download_type == 'audio':
-                    file_path = file_path.rsplit('.', 1)[0] + '.mp3'
-                    output_prefix = file_path.replace('.mp3', '')
-                    files_to_send = self.split_file(file_path, max_size_mb, output_prefix)
-                    for file in files_to_send:
-                        with open(file, 'rb') as f:
-                            self.bot.send_audio(
-                                call.message.chat.id, f,
-                                caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙"
-                            )
-                        os.remove(file)
-                elif download_type == 'video':
-                    output_prefix = file_path.replace('.mp4', '')
-                    files_to_send = self.split_file(file_path, max_size_mb, output_prefix)
-                    for file in files_to_send:
-                        with open(file, 'rb') as f:
-                            self.bot.send_video(
-                                call.message.chat.id, f,
-                                caption=f"تم التحميل بواسطة {self.BOT_USERNAME} ⋙"
-                            )
-                        os.remove(file)
-
-                time.sleep(2)
-                self.bot.delete_message(call.message.chat.id, loading_msg.message_id)
-
-                time.sleep(5)
-                try:
-                    self.bot.delete_message(call.message.chat.id, call.message.message_id)
-                except Exception:
-                    pass
-
-        except Exception as e:
-            logging.error(f"Download error for {video_id}: {str(e)}")
-            self.bot.edit_message_text(
-                f'<i>خطأ أثناء التحميل: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو هناك مشكلة في YouTube، جرب لاحقًا أو استخدم فيديو آخر</i>',
-                chat_id=call.message.chat.id,
-                message_id=loading_msg.message_id,
-                parse_mode='HTML'
-            )
 
     def load_cookies_from_file(self, file_path):
+        """التحقق من وجود ملف الكوكيز وسجل عدد الأسطر."""
         if os.path.exists(file_path):
             with open(file_path, 'r') as file:
-                cookies = file.readlines()
-                cookies_dict = {}
-                for line in cookies:
-                    if line.startswith('#') or line.strip() == '':
-                        continue
-                    parts = line.strip().split('\t')
-                    if len(parts) > 6:
-                        cookie_name = parts[5].strip()
-                        cookie_value = parts[6].strip()
-                        cookies_dict[cookie_name] = cookie_value
-                logging.info(f"Loaded {len(cookies_dict)} cookies from {file_path}")
-                return cookies_dict
+                lines = [line for line in file.readlines() if not line.startswith('#') and line.strip()]
+            logging.info(f"Loaded {len(lines)} cookie lines from {file_path}")
+            return True
         logging.warning(f"Cookies file {file_path} not found")
-        return None
+        return False
