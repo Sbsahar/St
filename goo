@@ -199,7 +199,7 @@ def enhance_audio(audio_path):
         return audio_path
 
 # التوكن هنا
-TOKEN = "7696186741:AAEUTv2Ufb3_N_5bbpvQyVSVauLQaTtlFSU"
+TOKEN = "7942028086:AAE-I3_aoVqQ7gNE2CfuPb4JeZw77eewV9s"
 bot = telebot.TeleBot(TOKEN)
 
 DOWNLOAD_FOLDER = "downloads"
