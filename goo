@@ -68,7 +68,7 @@ def improve_translation(text, is_song=True):
     print(f"Improved from: {original} to: {text}")
     return text
 
-# دالة إنشاء النص مع ضبط المسافات وحجم الخط والارتفاع (مع ظل ذهبي خفيف جدًا وظهور تدريجي)
+# دالة إنشاء النص مع ضبط المسافات وحجم الخط والارتفاع (مع ظل ذهبي خفيف جدًا وظهور تدريجي وخلفية سوداء شفافة)
 def create_text_clip_pil(text, fontsize, color, bg_color, max_width, start_time, end_time, position):
     print(f"Creating text clip for: {text} from {start_time}s to {end_time}s")
     
@@ -111,19 +111,29 @@ def create_text_clip_pil(text, fontsize, color, bg_color, max_width, start_time,
         line_widths.append(total_width - 5)
         line_heights.append(total_height)
 
-    img_width = max(line_widths) + 20
-    img_height = sum(line_heights) + 15 * len(lines)
+    img_width = max(line_widths) + 20 if line_widths else 100
+    img_height = sum(line_heights) + 15 * len(lines) if line_heights else 50
     
-    # رسم النص مع ظل ذهبي خفيف جدًا
+    # رسم النص مع خلفية سوداء شفافة وظل ذهبي خفيف جدًا
     img = Image.new("RGBA", (img_width, img_height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     current_h = 0
 
-    for line, h in zip(lines, line_heights):
+    for line_idx, (line, h) in enumerate(zip(lines, line_heights)):
+        # رسم الخلفية السوداء الشفافة للسطر
+        left = 0
+        right = img_width
+        top = current_h - 5
+        bottom = current_h + h + 15
+        bg_fill = (0, 0, 0, 128)  # أسود شفاف (alpha=128 لشفافية جزئية)
+        draw.rectangle([left, top, right, bottom], fill=bg_fill)
+        
+        # رسم النص
         line_segments = re.split(r'([A-Za-z0-9\s]+)', line)
         line_segments = [seg for seg in line_segments if seg.strip()]
         line_segments.reverse()
-        current_x = img_width - line_widths[lines.index(line)] - 10
+        line_width = line_widths[line_idx]
+        current_x = img_width - line_width - 10
         for seg in line_segments:
             font = latin_font if re.match(r'[A-Za-z0-9\s]+', seg) else arabic_font
             bbox = draw.textbbox((0, 0), seg, font=font)
@@ -157,7 +167,7 @@ def add_subtitles(video_path, segments, is_translation=True):
             text,
             fontsize=24,
             color="white",
-            bg_color="gray",
+            bg_color="black",
             max_width=video_clip.w * 0.8,
             start_time=start_time,
             end_time=end_time,
@@ -199,7 +209,7 @@ def enhance_audio(audio_path):
         return audio_path
 
 # التوكن هنا
-TOKEN = "7942028086:AAE-I3_aoVqQ7gNE2CfuPb4JeZw77eewV9s"
+TOKEN = "7696186741:AAEUTv2Ufb3_N_5bbpvQyVSVauLQaTtlFSU"
 bot = telebot.TeleBot(TOKEN)
 
 DOWNLOAD_FOLDER = "downloads"
@@ -299,21 +309,16 @@ def handle_video(message):
             segments = result["segments"]
             print(f"Retry transcription with Arabic: {len(segments)} segments found")
         
-        # فلترة الترجمة في البداية: تجاهل الـ segments القصيرة في أول 5 ثوانٍ
+        # تصحيح اللهجة للنصوص العربية دون تجاهل أي segments
         filtered_segments = []
         for segment in segments:
-            if segment["start"] < 5.0:
-                word_count = len(segment["text"].strip().split())
-                if word_count < 3:
-                    print(f"Ignoring short segment in intro: {segment['text']} ({segment['start']}s)")
-                    continue
             # تصحيح اللهجة للنصوص العربية
             if detected_language == "ar":
                 segment["text"] = correct_dialect(segment["text"])
             filtered_segments.append(segment)
         
         segments = filtered_segments
-        print(f"Filtered segments: {len(segments)} (ignored intro music)")
+        print(f"Processed segments: {len(segments)} (no intro filtering)")
         
         # حفظ البيانات للمستخدم
         user_data['video_path'] = video_path
