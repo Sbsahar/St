@@ -256,7 +256,7 @@ def handle_video(message):
         start_transcribe = time.time()
         result = model.transcribe(
             audio_path,
-            language="auto",  # auto للكشف التلقائي
+            language=None,  # الكشف التلقائي عن اللغة
             fp16=False,
             verbose=True,
             word_timestamps=False,
@@ -266,10 +266,17 @@ def handle_video(message):
         segments = result["segments"]
         print(f"Transcription completed in {transcribe_time:.2f} seconds: {len(segments)} segments found")
         if len(segments) == 0:
-            print("No segments detected! Trying with different settings...")
-            result = model.transcribe(audio_path, fp16=False, verbose=True)
+            print("No segments detected! Trying with Arabic language setting...")
+            result = model.transcribe(
+                audio_path,
+                language="ar",  # محاولة ثانية بالعربية
+                fp16=False,
+                verbose=True,
+                word_timestamps=False,
+                condition_on_previous_text=False
+            )
             segments = result["segments"]
-            print(f"Retry transcription: {len(segments)} segments found")
+            print(f"Retry transcription with Arabic: {len(segments)} segments found")
         
         # فلترة الترجمة في البداية: تجاهل الـ segments القصيرة في أول 5 ثوانٍ (للموسيقى)
         filtered_segments = []
