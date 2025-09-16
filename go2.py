@@ -1,4 +1,6 @@
 import os
+import time
+import requests.exceptions
 import subprocess
 import telebot
 import whisper
@@ -232,9 +234,9 @@ def send_welcome(message):
         "✨ *مميزاتي*:\n"
         "- استخراج النص العربي بدقة عالية.\n"
         "- ترجمة الفيديوهات من أي لغة إلى العربية.\n"
-        "- نصوص بخط نسخ عربي أنيق مع حواف سوداء.\n"
-        "- إمكانية تصحيح النصوص والترجمات بسهولة!\n\n"
-        "🚀 جاهز؟ أرسل فيديو الآن وجرب السحر بنفسك!"
+        "- نصوص بخط النسخ العربي .\n"
+        "- إمكانية تصحيح النصوص والترجمات بسهولة في الفيديوهات\n\n"
+        "🚀 جاهز؟ أرسل فيديو الآن وجرب بنفسك!"
     )
     bot.reply_to(message, welcome_message, parse_mode='Markdown')
 
@@ -279,7 +281,7 @@ def handle_video(message):
     # تحسين الصوت
     audio_path = enhance_audio(audio_path)
     
-    bot.send_message(chat_id, "📝 *جارٍ تحويل الصوت إلى نص، أعمل بجد* ✍️", parse_mode='Markdown')
+    bot.send_message(chat_id, "📝 *جارٍ تحويل الصوت إلى نص، أنتظر قليلا...* ✍️", parse_mode='Markdown')
     try:
         print("Starting Whisper transcription...")
         start_transcribe = time.time()
@@ -337,7 +339,7 @@ def handle_video(message):
         
         # رسالة الخيار
         markup = telebot.types.InlineKeyboardMarkup(row_width=1)
-        btn_extract = telebot.types.InlineKeyboardButton("استخراج النص العربي ودمجه مع الفيديو 📝", callback_data="extract")
+        btn_extract = telebot.types.InlineKeyboardButton("استخراج النص ودمجه مع الفيديو 📝", callback_data="extract")
         btn_translate = telebot.types.InlineKeyboardButton("ترجمة الفيديو إلى العربية ودمجها 🌐", callback_data="translate")
         markup.add(btn_extract, btn_translate)
         bot.send_message(chat_id, f"✅ *تم استخراج النص بنجاح ({len(segments)} جزء)!*\n\n*ماذا تريد؟*\n\n⚠️ *ملاحظة: للعامية (مصري/خليجي)، الدقة جيدة لكن قد تكون أقل من الفصحى.*", reply_markup=markup, parse_mode='Markdown')
@@ -367,15 +369,15 @@ def handle_callback(call):
     try:
         if data == "extract":
             print("User chose extract Arabic text")
-            bot.answer_callback_query(call.id, "جارٍ دمج النص العربي...")
+            bot.answer_callback_query(call.id, "جارٍ دمج النص ...")
             extracted_segments = [(seg['start'], seg['end'], seg['text'].strip()) for seg in segments if seg['text'].strip()]
             user_data['mode'] = 'extract'
             user_data['extracted_segments'] = extracted_segments  # حفظ النصوص المستخرجة للتصحيح
             user_data_storage[(user_id, chat_id)] = user_data
             final_video_path = add_subtitles(video_path, extracted_segments, is_translation=False)
-            bot.send_message(chat_id, "✅ *تم دمج النص العربي بنجاح* 📝\nإليك الفيديو مع النصوص الأصلية!", parse_mode='Markdown')
+            bot.send_message(chat_id, "✅ *تم دمج النص بنجاح* 📝\nإليك الفيديو مع النصوص الأصلية!", parse_mode='Markdown')
             with open(final_video_path, "rb") as video_file:
-                bot.send_video(chat_id, video_file, caption="🎥 إليك الفيديو مع النص العربي بأسلوب احترافي 😊", parse_mode='Markdown')
+                bot.send_video(chat_id, video_file, caption="🎥 إليك الفيديو مع النص بأسلوب احترافي 😊", parse_mode='Markdown')
             
             # إنشاء وإرسال ملف النصوص
             subtitles_file = os.path.join(DOWNLOAD_FOLDER, f"{user_id}_subtitles.txt")
@@ -538,4 +540,12 @@ def handle_text(message):
     bot.reply_to(message, "🤔 *عذراً، أنا بوت ترجمة فيديو احترافي!* أرسل فيديو وسأعالجه بأسلوب سحري ✨", parse_mode='Markdown')
 
 print("Bot started and polling...")
-bot.polling()
+while True:
+    try:
+        bot.polling(none_stop=True, interval=0, timeout=20)
+    except requests.exceptions.ConnectionError as e:
+        print(f"Connection error: {e}. Retrying in 5 seconds...")
+        time.sleep(5)  # انتظر 5 ثوانٍ قبل إعادة المحاولة
+    except Exception as e:
+        print(f"Unexpected error: {e}. Retrying in 5 seconds...")
+        time.sleep(5)
