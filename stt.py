@@ -108,8 +108,12 @@ def update_leaderboard(winner=None, loser=None, is_draw=False, players=None, mod
     conn.commit()
     conn.close()
 
-@bot.message_handler(commands=['leaderboard'])
+@bot.message_handler(commands=['leaderboard', 'chess_leaderboard'])
 def show_leaderboard(message):
+    if not check_subscription(message.from_user.id):
+        bot.reply_to(message, "⚠️ يرجى الاشتراك في @SYR_SB أولاً!")
+        return
+    
     conn = sqlite3.connect('chess_games.db')
     c = conn.cursor()
     c.execute('SELECT username, points FROM leaderboard ORDER BY points DESC LIMIT 5')
@@ -117,13 +121,14 @@ def show_leaderboard(message):
     conn.close()
     
     if not leaders:
-        bot.reply_to(message, "🏆 القائمة فارغة!")
+        bot.reply_to(message, "🏆 قائمة الشطرنج فارغة!")
         return
     
-    text = "🏆 قائمة الفائزين:\n"
+    text = "🏆 توب الشطرنج (أفضل 5 لاعبين):\n"
     for i, (username, points) in enumerate(leaders, 1):
         text += f"{i}. {username}: {points} نقاط\n"
     bot.reply_to(message, text)
+
 
 @bot.message_handler(commands=['start', 'chess'])
 def start_chess(message):
