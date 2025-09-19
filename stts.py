@@ -573,5 +573,18 @@ def help_command(message):
     bot.reply_to(message, help_text)
 
 # تحميل الألعاب عند بدء البوت
-load_games()
-bot.polling()
+def load_games():
+    # شغلك داخل الدالة
+    print("Games Loaded!")  # مثال فقط
+
+import time
+
+while True:
+    try:
+        load_games()
+        bot.polling(none_stop=True, interval=0, timeout=20)
+    except Exception as e:
+        print(f"🚨 حدث خطأ: {e}")
+        print("🔄 إعادة تشغيل البوت...")
+        time.sleep(5)  # استراحة صغيرة قبل المحاولة من جديد
+        continue
