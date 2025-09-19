@@ -126,7 +126,6 @@ def show_leaderboard(message):
     bot.reply_to(message, text)
 
 @bot.message_handler(commands=['start', 'chess'])
-@bot.message_handler(commands=['start', 'chess'])
 def start_chess(message):
     chat_id = message.chat.id
     user_id = message.from_user.id
@@ -143,18 +142,18 @@ def start_chess(message):
     # رسالة ترحيبية مع وصف البوت
     welcome_message = (
         "♟️ مرحبا بك في بوت الشطرنج! من خلالي يمكنك اللعب ضد أصدقائك في المجموعة. الشطرنج بشكل كامل وجميل!\n\n"
-        "🔥 **مميزات البوت**:\n"
-        "- 🎮 العب ضد أصدقائك في مباريات تنافسية (PVP) أو تحدَ البوت الذكي (PVE).\n"
+        "🔥 مميزات البوت:\n"
+        "- 🎮 يمكنك تحدي أصدقائك! أضفني إلى مجموعتك واكتب /chess_challenge وتحدى أصدقائك.\n"
         "- 🏆 تنافس على صدارة قائمة المتصدرين بنظام النقاط (3 نقاط للفوز، 1 نقطة للتعادل في PVP).\n"
-        "- ⚔ أرسل تحديًا لأي لاعب باستخدام /chess_challenge.\n"
-        "- 💾 جميع الألعاب محفوظة حتى لو توقف البوت!\n\n"
-        "اختر وضع اللعب أدناه:"
+        "- 🤖 جرب اللعب ضد البوت للتدريب.\n"
+        "- 📝 ملاحظة: اللعب ضد البوت مستوى سهل جدًا وتجريبي للبوت فقط.\n\n"
+        "اختر أدناه:"
     )
     
     markup = types.InlineKeyboardMarkup()
-    btn_pvp = types.InlineKeyboardButton("🎮 لعب ضد لاعب", callback_data=f"mode_pvp_{chat_id}")
+    btn_add_to_group = types.InlineKeyboardButton("➕ أضفني إلى مجموعتك", url="https://t.me/YOUR_BOT_USERNAME")
     btn_bot = types.InlineKeyboardButton("🤖 لعب ضد البوت", callback_data=f"mode_bot_{chat_id}")
-    markup.add(btn_pvp, btn_bot)
+    markup.add(btn_add_to_group, btn_bot)
     bot.send_message(chat_id, welcome_message, reply_markup=markup)
 
 @bot.message_handler(commands=['chess_challenge'])
