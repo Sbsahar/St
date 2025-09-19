@@ -46,8 +46,8 @@ active_games = {}    # {game_id: {'mode': 'pvp' or 'bot', 'players': [p1, p2 or 
 # رموز الإيموجي
 MOVE_DOT = '🔵'
 CAPTURE_DOT = '🔴'
-SQUARE_LIGHT = '⬜'
-SQUARE_DARK = '⬛'
+SQUARE_LIGHT = ' '  # فراغ للمربعات الفاتحة
+SQUARE_DARK = ' '   # فراغ للمربعات الداكنة
 
 PIECE_TO_EMOJI = {
     'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔',
@@ -108,6 +108,7 @@ def update_leaderboard(winner=None, loser=None, is_draw=False, players=None, mod
     conn.commit()
     conn.close()
 
+# دالة check_subscription قبل الدوال التي تستدعيها
 def check_subscription(user_id):
     try:
         member = bot.get_chat_member('@SYR_SB', user_id)
