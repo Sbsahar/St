@@ -46,8 +46,8 @@ active_games = {}    # {game_id: {'mode': 'pvp' or 'bot', 'players': [p1, p2 or 
 # رموز الإيموجي
 MOVE_DOT = '🔵'
 CAPTURE_DOT = '🔴'
-SQUARE_LIGHT = '⬜'
-SQUARE_DARK = '⬛'
+SQUARE_LIGHT = ' '
+SQUARE_DARK = ' '
 
 PIECE_TO_EMOJI = {
     'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔',
