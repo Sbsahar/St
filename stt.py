@@ -151,7 +151,7 @@ def start_chess(message):
     )
     
     markup = types.InlineKeyboardMarkup()
-    btn_add_to_group = types.InlineKeyboardButton("➕ أضفني إلى مجموعتك", url="https://t.me/YOUR_BOT_USERNAME")
+    btn_add_to_group = types.InlineKeyboardButton("➕ أضفني إلى مجموعتك", url="https://t.me/S963_bot")
     btn_bot = types.InlineKeyboardButton("🤖 لعب ضد البوت", callback_data=f"mode_bot_{chat_id}")
     markup.add(btn_add_to_group, btn_bot)
     bot.send_message(chat_id, welcome_message, reply_markup=markup)
