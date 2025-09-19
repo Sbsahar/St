@@ -160,8 +160,7 @@ def start_chess(message):
     btn_bot = types.InlineKeyboardButton("🤖 لعب ضد البوت", callback_data=f"mode_bot_{chat_id}")
     markup.add(btn_add_to_group, btn_bot)
     bot.send_message(chat_id, welcome_message, reply_markup=markup)
-
-@bot.message_handler(commands=['chess_challenge'])
+@bot.message_handler(func=lambda message: message.text.lower() == "تحدي شطرنج")
 def chess_challenge(message):
     chat_id = message.chat.id
     user_id = message.from_user.id
@@ -178,12 +177,6 @@ def chess_challenge(message):
     markup.add(btn_join)
     bot.send_message(chat_id, f"⚔ {user} يرغب بتحدي في لعبة شطرنج! هل من منافس؟", reply_markup=markup)
 
-def check_subscription(user_id):
-    try:
-        member = bot.get_chat_member('@SYR_SB', user_id)
-        return member.status in ['member', 'administrator', 'creator']
-    except:
-        return False
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('check_sub_'))
 def check_sub_callback(call):
