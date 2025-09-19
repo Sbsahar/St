@@ -108,7 +108,7 @@ def update_leaderboard(winner=None, loser=None, is_draw=False, players=None, mod
     conn.commit()
     conn.close()
 
-@bot.message_handler(commands=['leaderboard', 'chess_leaderboard'])
+@bot.message_handler(func=lambda message: message.text.lower() == "توب الشطرنج")
 def show_leaderboard(message):
     if not check_subscription(message.from_user.id):
         bot.reply_to(message, "⚠️ يرجى الاشتراك في @SYR_SB أولاً!")
