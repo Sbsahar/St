@@ -11,7 +11,7 @@ import json
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-bot = telebot.TeleBot("YOUR_BOT_TOKEN")
+bot = telebot.TeleBot("7942028086:AAF7hqzGJwFjLGS8ZkQGA7JwVUsgZk3xlBU")
 
 # إعداد قاعدة البيانات
 def init_db():
