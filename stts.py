@@ -221,7 +221,7 @@ def check_sub_callback(call):
         btn_add_to_group = types.InlineKeyboardButton("➕ أضفني إلى مجموعتك", url="https://t.me/YOUR_BOT_USERNAME")
         btn_bot = types.InlineKeyboardButton("🤖 لعب ضد البوت", callback_data=f"mode_bot_{chat_id}")
         markup.add(btn_add_to_group, btn_bot)
-        bot.send_message(chat_id, "♟️ اختر أدناه:", reply_markup=markup)
+        bot.send_message(chat_id, "تم التحقق اضغط /start", reply_markup=markup)
     else:
         bot.answer_callback_query(call.id, "❌ لم تشترك بعد!", show_alert=True)
 
