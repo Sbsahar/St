@@ -10,25 +10,20 @@ import threading
 from datetime import datetime, date
 from queue import Queue
 
-# إعدادات البوت
-TOKEN = '8196365414:AAEfGQ8gNb_uMC_O84ell49WLDldgINiTV0'
+TOKEN = '8196365414:AAHO9bxrHPsKSxrtnMfIqFaXsFh5k2TAjcA'
 CHANNEL_USERNAME = 'SYR_SB'
 CHANNEL_URL = 'https://t.me/SYR_SB'
 PROGRAMMER_URL = 'https://t.me/SB_SAHAR'
-DEVELOPER_ID = '6789179634'  # معرف المطور
-NSFW_THRESHOLD = 0.7  # العتبة القابلة للتخصيص
+DEVELOPER_ID = '6789179634' 
+NSFW_THRESHOLD = 0.7  
 bot = telebot.TeleBot(TOKEN)
-
-# ملفات التخزين وقائمة الرسائل المفحوصة
 VIOLATIONS_FILE = "user_violations.json"
 REPORTS_FILE = "daily_reports.json"
 user_violations = {}
 daily_reports = {}
 current_date = date.today().isoformat()
-processed_messages = set()  # لتتبع الرسائل التي تم فحصها
-media_queue = Queue()  # قائمة انتظار لمعالجة الفيديوهات
-
-# تحميل بيانات المخالفات
+processed_messages = set() 
+media_queue = Queue() 
 def load_violations():
     global user_violations
     try:
@@ -36,13 +31,9 @@ def load_violations():
             user_violations = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         user_violations = {}
-
-# حفظ بيانات المخالفات
 def save_violations():
     with open(VIOLATIONS_FILE, 'w', encoding='utf-8') as f:
         json.dump(user_violations, f, ensure_ascii=False, indent=4)
-
-# تحميل التقارير اليومية
 def load_reports():
     global daily_reports
     try:
@@ -50,13 +41,9 @@ def load_reports():
             daily_reports = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         daily_reports = {}
-
-# حفظ التقارير اليومية
 def save_reports():
     with open(REPORTS_FILE, 'w', encoding='utf-8') as f:
         json.dump(daily_reports, f, ensure_ascii=False, indent=4)
-
-# فحص الصور باستخدام OpenNSFW2
 def check_image_safety(image_path):
     try:
         image = Image.open(image_path)
@@ -66,8 +53,6 @@ def check_image_safety(image_path):
     except Exception as e:
         print(f"حدث خطأ أثناء تحليل الصورة: {e}")
         return 'error'
-
-# معالجة الفيديوهات والصور المتحركة في خيط منفصل
 def process_media_worker():
     while True:
         content, file_extension, message, media_type = media_queue.get()
@@ -86,8 +71,6 @@ def process_media_worker():
             print(f"خطأ في معالجة الميديا للرسالة {message.message_id}: {e}")
         finally:
             media_queue.task_done()
-
-# معالجة المخالفات مع تسجيل التقرير
 def handle_violation(message, content_type):
     global current_date
     try:
@@ -148,8 +131,6 @@ def handle_violation(message, content_type):
         save_violations()
     except Exception as e:
         print(f"خطأ في معالجة المخالفة: {e}")
-
-# التحقق من صلاحيات المشرف
 def is_user_admin(chat_id, user_id):
     try:
         admins = bot.get_chat_administrators(chat_id)
@@ -157,8 +138,6 @@ def is_user_admin(chat_id, user_id):
     except Exception as e:
         print(f"خطأ في التحقق من الصلاحيات: {e}")
         return False
-
-# التحقق من الاشتراك في القناة
 def is_user_subscribed(user_id):
     try:
         if str(user_id) == DEVELOPER_ID:
@@ -172,8 +151,6 @@ def is_user_subscribed(user_id):
     except Exception as e:
         print(f"Error checking subscription for user {user_id}: {e}")
         return False
-
-# معالجة الصور
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
     if message.message_id in processed_messages:
@@ -195,15 +172,15 @@ def handle_photo(message):
 
     if res == 'nude':
         handle_violation(message, 'صورة')
-
-# معالجة الملصقات
 @bot.message_handler(content_types=['sticker'])
-def handle_sticker(message):
-    if message.message_id in processed_messages:
+def handle_sticker(message, is_edited=False):
+    if not is_edited and message.message_id in processed_messages:
         print(f"الرسالة {message.message_id} تم فحصها مسبقًا، يتم تجاهلها.")
         return
     
-    processed_messages.add(message.message_id)
+    if not is_edited:
+        processed_messages.add(message.message_id)
+    
     if message.sticker.thumb:
         file_info = bot.get_file(message.sticker.thumb.file_id)
         sticker_url = f'https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}'
@@ -216,38 +193,38 @@ def handle_sticker(message):
         res = check_image_safety(temp_path)
         os.remove(temp_path)
 
-    if res == 'nude':
-        handle_violation(message, 'ملصق')
-
-# معالجة الفيديوهات
+        if res == 'nude':
+            handle_violation(message, 'ملصق')
 @bot.message_handler(content_types=['video'])
-def handle_video(message):
-    if message.message_id in processed_messages:
+def handle_video(message, is_edited=False):
+    if not is_edited and message.message_id in processed_messages:
         print(f"الرسالة {message.message_id} تم فحصها مسبقًا، يتم تجاهلها.")
         return
     
-    processed_messages.add(message.message_id)
+    if not is_edited:
+        processed_messages.add(message.message_id)
+    
     file_info = bot.get_file(message.video.file_id)
     file_url = f'https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}'
     response = requests.get(file_url)
     if response.status_code == 200:
         media_queue.put((response.content, '.mp4', message, 'فيديو'))
-
-# معالجة الصور المتحركة (GIF)
+        
 @bot.message_handler(content_types=['animation'])
-def handle_gif(message):
-    if message.message_id in processed_messages:
+def handle_gif(message, is_edited=False):
+    if not is_edited and message.message_id in processed_messages:
         print(f"الرسالة {message.message_id} تم فحصها مسبقًا، يتم تجاهلها.")
         return
     
-    processed_messages.add(message.message_id)
+    if not is_edited:
+        processed_messages.add(message.message_id)
+    
     file_info = bot.get_file(message.animation.file_id)
     file_url = f'https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}'
     response = requests.get(file_url)
     if response.status_code == 200:
         media_queue.put((response.content, '.gif', message, 'صورة متحركة'))
-
-# معالجة الرموز التعبيرية المميزة
+        
 @bot.message_handler(func=lambda message: message.entities and any(entity.type == 'custom_emoji' for entity in message.entities))
 def handle_custom_emoji(message):
     if message.message_id in processed_messages:
@@ -277,14 +254,8 @@ def get_premium_sticker_info(custom_emoji_ids):
         print(f"Error retrieving sticker info: {e}")
         return []
 
-# معالجة الرسائل المعدلة (نصوص تحتوي على رموز تعبيرية مميزة)
 @bot.edited_message_handler(content_types=['text'])
 def handle_edited_custom_emoji_message(message):
-    if message.message_id in processed_messages:
-        print(f"الرسالة المعدلة {message.message_id} تم فحصها مسبقًا، يتم تجاهلها.")
-        return
-    
-    processed_messages.add(message.message_id)
     user_id = message.from_user.id
     user_name = f"@{message.from_user.username}" if message.from_user.username else f"({user_id})"
 
@@ -310,15 +281,9 @@ def handle_edited_custom_emoji_message(message):
                     )
                     bot.send_message(message.chat.id, alert_message, parse_mode="HTML")
                     handle_violation(message, 'رمز تعبيري مميز معدل')
-
-# معالجة الميديا المعدلة
+                    
 @bot.edited_message_handler(content_types=['photo', 'video', 'animation', 'sticker'])
 def handle_edited_media(message):
-    if message.message_id in processed_messages:
-        print(f"الرسالة المعدلة {message.message_id} تم فحصها مسبقًا، يتم تجاهلها.")
-        return
-    
-    processed_messages.add(message.message_id)
     user_id = message.from_user.id
     user_name = f"@{message.from_user.username}" if message.from_user.username else f"({user_id})"
 
@@ -346,13 +311,12 @@ def handle_edited_media(message):
             handle_violation(message, 'صورة معدلة')
 
     elif message.content_type == 'video':
-        handle_video(message)
+        handle_video(message, is_edited=True)
     elif message.content_type == 'animation':
-        handle_gif(message)
+        handle_gif(message, is_edited=True)
     elif message.content_type == 'sticker':
-        handle_sticker(message)
-
-# أمر البدء مع الاشتراك الإجباري والأزرار
+        handle_sticker(message, is_edited=True)
+        
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.from_user.id
@@ -390,7 +354,6 @@ def start(message):
         reply_markup=markup
     )
 
-# التعامل مع زر التحقق من الاشتراك
 @bot.callback_query_handler(func=lambda call: call.data == "check_subscription")
 def check_subscription_callback(call):
     user_id = call.from_user.id
@@ -416,7 +379,6 @@ def check_subscription_callback(call):
     else:
         bot.answer_callback_query(call.id, "⚠️ لم تشترك بعد! الرجاء الاشتراك في القناة أولاً.", show_alert=True)
 
-# الترحيب عند إضافة البوت إلى مجموعة
 @bot.message_handler(content_types=['new_chat_members'])
 def on_user_joins(message):
     for member in message.new_chat_members:
@@ -433,8 +395,6 @@ def on_user_joins(message):
                 ),
                 parse_mode="HTML"
             )
-
-# أمر عرض الإحصائيات اليومية
 @bot.message_handler(commands=['stats'])
 def show_stats(message):
     chat_id = str(message.chat.id)
@@ -446,7 +406,6 @@ def show_stats(message):
     
     send_daily_report(chat_id)
 
-# إرسال التقرير اليومي عند الطلب
 def send_daily_report(chat_id):
     chat_id = str(chat_id)
     if chat_id in daily_reports and daily_reports[chat_id]:
@@ -485,14 +444,11 @@ def send_daily_report(chat_id):
     else:
         bot.send_message(chat_id, "✅ <b>لا توجد مخالفات مسجلة اليوم!</b>\n📢 <b>المجموعة نظيفة وآمنة!</b>", parse_mode="HTML")
 
-# تصفير التقارير اليومية عند تغير اليوم
 def reset_daily_reports():
     global daily_reports
     daily_reports = {}
     save_reports()
     print("✅ تم تصفير التقارير اليومية.")
-
-# خيط للتحقق من تغير اليوم
 def check_day_change():
     global current_date
     while True:
@@ -501,8 +457,6 @@ def check_day_change():
             reset_daily_reports()
             current_date = today
         time.sleep(3600)
-
-# دالة لتشغيل البوت مع إعادة المحاولة عند التوقف
 def run_bot_with_restart():
     while True:
         try:
@@ -510,16 +464,15 @@ def run_bot_with_restart():
             bot.polling(none_stop=True, interval=0, timeout=20)
         except Exception as e:
             print(f"حدث خطأ أثناء تشغيل البوت: {e}")
-            print("جاري إعادة المحاولة بعد 5 ثوانٍ...")
+            print("rest")
             time.sleep(5)
 
-# تحميل البيانات عند التشغيل وتشغيل معالج الفيديوهات
 load_violations()
 load_reports()
 threading.Thread(target=process_media_worker, daemon=True).start()
 
-# تشغيل البوت
 if __name__ == "__main__":
     threading.Thread(target=check_day_change, daemon=True).start()
-    print("البوت يعمل الآن مع إعادة تشغيل تلقائي...")
+    print("ok")
     run_bot_with_restart()
+        
