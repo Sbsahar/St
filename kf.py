@@ -11,7 +11,7 @@ from datetime import datetime, date
 from queue import Queue
 
 # إعدادات البوت
-TOKEN = '8196365414:AAEUhb_Puvx8IVrKvbLAuJ8xz1IeRWw-2Ec'
+TOKEN = '8196365414:AAEfGQ8gNb_uMC_O84ell49WLDldgINiTV0'
 CHANNEL_USERNAME = 'SYR_SB'
 CHANNEL_URL = 'https://t.me/SYR_SB'
 PROGRAMMER_URL = 'https://t.me/SB_SAHAR'
