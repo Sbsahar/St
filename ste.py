@@ -441,7 +441,98 @@ def is_user_admin(bot, chat_id, user_id):
         return False
 
 
-    
+def extract_user_info(bot, message):
+    """
+    إرجاع (user_id, username) أو (None, None).
+    يدعم الحالات:
+      - الرد على رسالة (reply_to_message)
+      - entities من نوع text_mention (يحتوي user object مباشرة)
+      - mention (@username) الموجود في message.entities أو caption_entities
+      - المعطى كـ ID رقمي
+      - رابط tg://user?id=...
+      - محاولة احتياطية باستخدام bot.get_chat('@username')
+    """
+    try:
+        # 1) إذا كان الرد على رسالة -> استخرج من reply
+        if getattr(message, "reply_to_message", None):
+            u = message.reply_to_message.from_user
+            return u.id, getattr(u, "username", None)
+
+        text = message.text or message.caption or ""
+        parts = text.split()
+
+        # اجمع الكيانات (entities) الموجودة في النص أو الكابتشن
+        entities = []
+        if getattr(message, "entities", None):
+            entities.extend(message.entities)
+        if getattr(message, "caption_entities", None):
+            entities.extend(message.caption_entities)
+
+        # 2) تحقق من text_mention (يضم user object)
+        for ent in entities:
+            if ent.type == "text_mention" and getattr(ent, "user", None):
+                return ent.user.id, getattr(ent.user, "username", None)
+
+        # 3) تحقق من mention (@username) داخل الكيانات أولاً
+        for ent in entities:
+            if ent.type == "mention":
+                try:
+                    base = (message.text or message.caption)
+                    mention_text = base[ent.offset: ent.offset + ent.length]
+                    if not mention_text.startswith("@"):
+                        mention_text = "@" + mention_text
+                    # حاول جلب معلومات الحساب عبر get_chat
+                    try:
+                        chat = bot.get_chat(mention_text)
+                        return chat.id, getattr(chat, "username", None)
+                    except Exception as e:
+                        print(f"get_chat failed for mention {mention_text}: {e}")
+                except Exception as e:
+                    print(f"error parsing mention entity: {e}")
+
+        # 4) إذا لم توجد كيان، استخدم الكلمة الثانية بعد الأمر
+        if len(parts) > 1:
+            target = parts[1].strip()
+
+            # tg://user?id=12345
+            if target.startswith("tg://user?id="):
+                try:
+                    uid = int(target.split("=", 1)[1])
+                    return uid, None
+                except Exception:
+                    pass
+
+            # @username بقيمة نصية
+            if target.startswith("@"):
+                try:
+                    chat = bot.get_chat(target)
+                    return chat.id, getattr(chat, "username", None)
+                except Exception as e:
+                    print(f"get_chat failed for {target}: {e}")
+                    # جرب بدون @ كتحوّط
+                    try:
+                        chat = bot.get_chat("@" + target.lstrip("@"))
+                        return chat.id, getattr(chat, "username", None)
+                    except Exception as e2:
+                        print(f"second get_chat failed for @{target}: {e2}")
+
+            # إذا كان رقمياً -> آيدي
+            if target.isdigit():
+                return int(target), None
+
+            # محاولة احتياطية: إذا المستخدم كتب username بدون @
+            try:
+                chat = bot.get_chat("@" + target)
+                return chat.id, getattr(chat, "username", None)
+            except Exception as e:
+                print(f"fallback get_chat failed for @{target}: {e}")
+
+        # لم نتمكن من العثور على هدف
+        return None, None
+
+    except Exception as ex:
+        print(f"extract_user_info unexpected error: {ex}")
+        return None, None    
 
 
     
