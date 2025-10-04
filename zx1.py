@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 telebot.logger.setLevel(logging.DEBUG)
 
 # إعدادات البوت
-TOKEN = '7937617884:AAGulic7N5PeqEYWdm3Trs_qbVn3gT-fM8k'
+TOKEN = '7524766252:AAFSqs3nrpAtdWcHFFgDUqx9VDeHAiRuJ8I'
 CHANNEL_USERNAME = '@SYR_SB'
 CHANNEL_URL = 'https://t.me/SYR_SB'
 PROGRAMMER_URL = 'https://t.me/SB_SAHAR'
