@@ -1,4 +1,5 @@
 import telebot
+from queue import Queue
 import opennsfw2 as n2
 from PIL import Image
 import requests
