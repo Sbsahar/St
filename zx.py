@@ -14,7 +14,7 @@ import subprocess  # جديد: لـ FFmpeg في كاشف العنف
 from transformers import pipeline  # جديد: لنموذج العنف
 
 # إعدادات البوت
-TOKEN = '7937617884:AAF-7yNOELaBqY8X_191NETDe97t9QLs2c4'
+TOKEN = '7937617884:AAGulic7N5PeqEYWdm3Trs_qbVn3gT-fM8k'
 CHANNEL_USERNAME = '@SYR_SB'
 CHANNEL_URL = 'https://t.me/SYR_SB'
 PROGRAMMER_URL = 'https://t.me/SB_SAHAR'
