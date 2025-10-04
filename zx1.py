@@ -17,7 +17,7 @@ from transformers import pipeline  # جديد: لنموذج العنف
 TOKEN = '7937617884:AAF-7yNOELaBqY8X_191NETDe97t9QLs2c4'
 CHANNEL_USERNAME = '@SYR_SB'
 CHANNEL_URL = 'https://t.me/SYR_SB'
-PROGRAMMER_URL = 'https://t.me/S_Y_K'
+PROGRAMMER_URL = 'https://t.me/SB_SAHAR'
 DEVELOPER_ID = '6789179634'  # معرف المطور
 NSFW_THRESHOLD = 0.5  # العتبة القابلة للتخصيص
 bot = telebot.TeleBot(TOKEN)
