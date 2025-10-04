@@ -701,7 +701,10 @@ def start(message):
 
     markup = telebot.types.InlineKeyboardMarkup()
     programmer_button = telebot.types.InlineKeyboardButton("المطور", url=PROGRAMMER_URL)
-    add_to_group_button = telebot.types.InlineKeyboardButton("➕ أضفني إلى مجموعتك", url=f"https://t.me/{bot.get_me().username}?startgroup=true")
+    add_to_group_button = telebot.types.InlineKeyboardButton(
+        "➕ أضفني إلى مجموعتك", 
+        url=f"https://t.me/{bot.get_me().username}?startgroup=true"
+    )
     markup.add(programmer_button, add_to_group_button)
 
     bot.send_message(
@@ -709,7 +712,7 @@ def start(message):
         (
             "🛡️ <b>مرحبا بك في بوت الحماية المتطور المقدم من سورس سوريا </b>\n"
             "أنا هنا لحماية مجموعاتك من المحتوى غير اللائق تلقائيًا.\n"
-            "📊 <b>الأستخدام</b> استخدم /stats لعرض التقرير اليومي.\ في المجموعة المفعلة\n"
+            "📊 <b>الأستخدام</b> استخدم /stats لعرض التقرير اليومي في المجموعة المفعلة\n"
             "━━━━━━━━━━━━━━━━━━━━━━━\n"
             "⚡ <b>أضفني الآن واستمتع بالأمان!</b>"
         ),
