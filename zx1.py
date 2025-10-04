@@ -680,18 +680,19 @@ def settings_callback(call):
 @bot.message_handler(commands=['start'])
 def start(message):
     try:
-        print(f"[DEBUG] تلقيت أمر /start من user_id: {message.from_user.id}, chat_id: {message.chat.id}")
+        print(f"[DEBUG] بدء معالجة /start من user_id: {message.from_user.id}, chat_id: {message.chat.id}")
         user_id = message.from_user.id
-        
+        print(f"[DEBUG] subscription_enabled: {subscription_enabled}")
+
         # تعطيل التحقق من الاشتراك مؤقتًا للاختبار
-        subscription_enabled = False  # ضع True لإعادة تفعيل التحقق لاحقًا
+        subscription_enabled = False
         if subscription_enabled and not is_user_subscribed(user_id):
             print(f"[DEBUG] المستخدم {user_id} لم يشترك في القناة")
             markup = telebot.types.InlineKeyboardMarkup()
             subscribe_button = telebot.types.InlineKeyboardButton("اشترك الآن", url=CHANNEL_URL)
             check_button = telebot.types.InlineKeyboardButton("🔄 تحقق من الاشتراك", callback_data="check_subscription")
             markup.add(subscribe_button, check_button)
-            
+            print("[DEBUG] إنشاء الأزرار للاشتراك")
             bot.send_message(
                 message.chat.id,
                 f"⚠️ يجب عليك الاشتراك في القناة أولاً لاستخدام البوت!\n\n👉 {CHANNEL_URL}",
@@ -700,12 +701,12 @@ def start(message):
             print(f"[DEBUG] أرسلت رسالة طلب الاشتراك لـ user_id: {user_id}")
             return
 
-        print(f"[DEBUG] المستخدم {user_id} يمكنه الوصول، عرض رسالة البدء")
+        print(f"[DEBUG] إنشاء أزرار الترحيب لـ user_id: {user_id}")
         markup = telebot.types.InlineKeyboardMarkup()
         programmer_button = telebot.types.InlineKeyboardButton("المطور", url=PROGRAMMER_URL)
         add_to_group_button = telebot.types.InlineKeyboardButton("➕ أضفني إلى مجموعتك", url=f"https://t.me/{bot.get_me().username}?startgroup=true")
         markup.add(programmer_button, add_to_group_button)
-
+        print("[DEBUG] إرسال رسالة الترحيب")
         bot.send_message(
             message.chat.id,
             "مرحبًا! أنا بوت الحماية الذكي. جربني الآن!",
@@ -713,32 +714,7 @@ def start(message):
         )
         print(f"[DEBUG] أرسلت رسالة الترحيب لـ user_id: {user_id}")
     except Exception as e:
-        print(f"[ERROR] خطأ في معالجة /start لـ user_id: {user_id}: {e}")
-
-# التعامل مع زر التحقق من الاشتراك
-@bot.callback_query_handler(func=lambda call: call.data == "check_subscription")
-def check_subscription_callback(call):
-    try:
-        user_id = call.from_user.id
-        print(f"[DEBUG] تلقيت طلب تحقق من الاشتراك من user_id: {user_id}")
-        if is_user_subscribed(user_id):
-            markup = telebot.types.InlineKeyboardMarkup()
-            programmer_button = telebot.types.InlineKeyboardButton("المطور", url=PROGRAMMER_URL)
-            add_to_group_button = telebot.types.InlineKeyboardButton("➕ أضفني إلى مجموعتك", url=f"https://t.me/{bot.get_me().username}?startgroup=true")
-            markup.add(programmer_button, add_to_group_button)
-
-            bot.edit_message_text(
-                "مرحبًا! أنا بوت الحماية الذكي. جربني الآن!",
-                call.message.chat.id,
-                call.message.message_id,
-                reply_markup=markup
-            )
-            print(f"[DEBUG] أرسلت رسالة الترحيب بعد التحقق لـ user_id: {user_id}")
-        else:
-            bot.answer_callback_query(call.id, "⚠️ لم تشترك بعد! الرجاء الاشتراك في القناة أولاً.", show_alert=True)
-            print(f"[DEBUG] المستخدم {user_id} لم يشترك بعد")
-    except Exception as e:
-        print(f"[ERROR] خطأ في معالجة check_subscription لـ user_id: {user_id}: {e}")
+        print(f"[ERROR] خطأ في معالجة /start لـ user_id: {user_id}: {str(e)}")
 
 # أمر التفعيل /ran
 @bot.message_handler(commands=['ran'])
