@@ -1308,21 +1308,7 @@ def handle_edited_media(message):
     elif message.content_type == 'sticker':
         handle_sticker(message)
 
-@bot.message_handler(content_types=['new_chat_members'])
-def handle_new_member(message):
-    """معالجة انضمام أعضاء جدد إلى المجموعة"""
-    try:
-        for member in message.new_chat_members:
-            # التحقق مما إذا كان العضو الجديد هو المطور
-            if str(member.id) in [DEVELOPER_ID, DEVELOPER_CHAT_ID]:
-                bot.reply_to(
-                    message,
-                    f"انضم مطوري <b>@{member.username}</b> إلى المجموعة، أهلاً بك عزيزي المطور ☺️",
-                    parse_mode="HTML"
-                )
-                logging.info(f"المطور @{member.username} (ID: {member.id}) انضم إلى المجموعة {message.chat.id}")
-    except Exception as e:
-        logging.error(f"خطأ أثناء معالجة انضمام عضو جديد: {e}")
+
 
 # تحميل البيانات عند التشغيل وتشغيل معالج الفيديوهات
 load_violations()
