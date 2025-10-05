@@ -14,19 +14,20 @@ import subprocess
 from transformers import pipeline, CLIPProcessor, CLIPModel
 import logging
 import torch
+import time
 
 # إعداد التسجيل
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 telebot.logger.setLevel(logging.DEBUG)
 
 # إعدادات البوت
-TOKEN = '7937617884:AAGulic7N5PeqEYWdm3Trs_qbVn3gT-fM8k'
-CHANNEL_USERNAME = 'SYR_SB'
-CHANNEL_URL = 'https://t.me/SYR_SB'
-PROGRAMMER_URL = 'https://t.me/SB_SAHAR'
-DEVELOPER_ID = '6789179634'
+TOKEN = '7882394358:AAGQx9QbwgodZm7-mzBp1J6kJKt2QFIDh9I'
+CHANNEL_USERNAME = 'F_U_2'
+CHANNEL_URL = 'https://t.me/S_Y_K'
+PROGRAMMER_URL = 'https://t.me/S_Y_K'
+DEVELOPER_ID = '6305419238'
 NSFW_THRESHOLD = 0.5
-VIOLENCE_THRESHOLD = 0.6
+VIOLENCE_THRESHOLD = 0.5
 bot = telebot.TeleBot(TOKEN)
 BOT_ID = bot.get_me().id
 
@@ -1230,10 +1231,19 @@ load_banned_words()
 threading.Thread(target=process_media_worker, daemon=True).start()
 
 # تشغيل البوت
+
+
 if __name__ == "__main__":
+    # تشغيل خيط التحقق من تغيير اليوم
     threading.Thread(target=check_day_change, daemon=True).start()
     print("البوت يعمل الآن...")
-    try:
-        bot.polling(non_stop=True, timeout=60, long_polling_timeout=60)
-    except Exception as e:
-        print(f"[ERROR] خطأ في تشغيل البوت: {e}")
+
+    # حلقة إعادة تشغيل تلقائية
+    while True:
+        try:
+            bot.polling(non_stop=True, timeout=60, long_polling_timeout=60)
+        except Exception as e:
+            print(f"[ERROR] خطأ في تشغيل البوت: {e}")
+            print("[INFO] جاري إعادة المحاولة بعد 10 ثوان...")
+            time.sleep(10)  # تأخير 10 ثوان قبل إعادة المحاولة
+            continue
