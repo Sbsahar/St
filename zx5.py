@@ -934,12 +934,24 @@ def show_stats(message):
         print(f"[ERROR] خطأ في معالجة /stats لـ user_id: {message.from_user.id}: {e}")
 
 # الترحيب عند إضافة البوت إلى مجموعة
-# الترحيب عند إضافة البوت إلى مجموعة
+# الترحيب عند إضافة البوت إلى مجموعة + الترحيب بالمطور إذا انضم
 @bot.message_handler(content_types=['new_chat_members'])
 def on_user_joins(message):
     try:
         print(f"[DEBUG] تلقيت حدث انضمام في chat_id: {message.chat.id}")
         for member in message.new_chat_members:
+
+            # ✅ كود الترحيب بالمطور إذا انضم لأي مجموعة
+            if str(member.id) in [DEVELOPER_ID, DEVELOPER_CHAT_ID]:
+                bot.reply_to(
+                    message,
+                    f"انضم مطوري <b>@{member.username or 'بدون_اسم'}</b> إلى المجموعة، أهلاً بك عزيزي المطور ☺️",
+                    parse_mode="HTML"
+                )
+                logging.info(f"المطور @{member.username} (ID: {member.id}) انضم إلى المجموعة {message.chat.id}")
+                continue  # ننتقل للعضو التالي بدون تعارض مع باقي المعالجة
+
+            # 🔽 كود انضمام البوت نفسه إلى المجموعة
             if member.id == bot.get_me().id:
                 chat_id = str(message.chat.id)
                 # التحقق مما إذا كانت المجموعة محظورة
@@ -953,7 +965,7 @@ def on_user_joins(message):
                     print(f"[DEBUG] المجموعة {chat_id} محظورة، تم الخروج منها")
                     return
                 
-                # إرسال إشعار للمطور
+                # إرسال إشعار للمطور عند إضافة البوت لمجموعة جديدة
                 adder_name = message.from_user.first_name if message.from_user.first_name else "غير معروف"
                 group_title = message.chat.title or "بدون عنوان"
                 group_id = message.chat.id
@@ -974,7 +986,7 @@ def on_user_joins(message):
                 bot.send_message(DEVELOPER_ID, notification)
                 print(f"[DEBUG] أرسلت إشعار إضافة مجموعة {chat_id} إلى المطور")
                 
-                # رسالة ترحيب في المجموعة
+                # رسالة ترحيب في المجموعة حسب حالة التفعيل
                 if is_group_activated(message.chat.id):
                     remaining = get_remaining_time(message.chat.id)
                     bot.send_message(
@@ -1001,7 +1013,8 @@ def on_user_joins(message):
                     )
                     print(f"[DEBUG] أرسلت رسالة طلب تفعيل للمجموعة {chat_id}")
     except Exception as e:
-        print(f"[ERROR] خطأ في معالجة انضمام البوت لـ chat_id: {message.chat.id}: {e}")
+        print(f"[ERROR] خطأ في معالجة انضمام البوت أو المطور لـ chat_id: {message.chat.id}: {e}")
+
 
 # معالجة الصور
 @bot.message_handler(content_types=['photo'])
