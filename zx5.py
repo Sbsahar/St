@@ -1317,20 +1317,20 @@ threading.Thread(target=process_media_worker, daemon=True).start()
 def restart_bot():
     """إعادة تشغيل البوت"""
     print("[INFO] إعادة تشغيل البوت التلقائية...")
-    os.execv(sys.executable, ['python3'] + sys.argv)
+    os.execv(sys.executable, ['python3', 'zx5.py'])  # تأكد من أن 'zx5.py' هو اسم ملف البوت
 
 def schedule_restart():
     """جدولة إعادة التشغيل كل 5 دقائق"""
-    threading.Timer(300, schedule_restart).start()  # 300 ثانية = 5 دقائق
-    restart_bot()
+    print("[INFO] جدولة إعادة تشغيل البوت بعد 5 دقائق...")
+    threading.Timer(300, restart_bot).start()  # جدولة إعادة التشغيل بعد 300 ثانية
 
 if __name__ == "__main__":
     # تشغيل خيط التحقق من تغيير اليوم
     threading.Thread(target=check_day_change, daemon=True).start()
-    # تشغيل خيط جدولة إعادة التشغيل
-    threading.Thread(target=schedule_restart, daemon=True).start()
+    # جدولة أول إعادة تشغيل
+    schedule_restart()
     print("البوت يعمل الآن...")
-    
+
     while True:
         try:
             bot.polling(non_stop=True, timeout=60, long_polling_timeout=60)
