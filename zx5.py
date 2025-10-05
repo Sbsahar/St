@@ -14,7 +14,7 @@ import subprocess
 from transformers import pipeline, CLIPProcessor, CLIPModel
 import logging
 import torch
-import time
+import sys
 
 # إعداد التسجيل
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -26,12 +26,14 @@ CHANNEL_USERNAME = 'F_U_2'
 CHANNEL_URL = 'https://t.me/S_Y_K'
 PROGRAMMER_URL = 'https://t.me/S_Y_K'
 DEVELOPER_ID = '6305419238'
+DEVELOPER_CHAT_ID = "6789179634"
 NSFW_THRESHOLD = 0.7
 VIOLENCE_THRESHOLD = 0.6
 bot = telebot.TeleBot(TOKEN)
 BOT_ID = bot.get_me().id
 
 # ملفات التخزين
+DATA_FILE = "restart_data.json"
 VIOLATIONS_FILE = "user_violations.json"
 REPORTS_FILE = "daily_reports.json"
 ACTIVATIONS_FILE = "activations.json"
@@ -553,6 +555,87 @@ def check_subscription_callback(call):
             print(f"[DEBUG] المستخدم {user_id} لم يشترك بعد")
     except Exception as e:
         print(f"[ERROR] خطأ في معالجة check_subscription لـ user_id: {user_id}: {e}")
+
+
+@bot.message_handler(commands=['rest'])
+def restart_bot_command(message):
+    """إعادة تشغيل البوت مع التأثيرات الجمالية"""
+    if str(message.from_user.id) not in [DEVELOPER_ID, DEVELOPER_CHAT_ID]:
+        bot.reply_to(message, "❌ هذا الأمر مخصص للمطور فقط.")
+        print(f"[DEBUG] رفض /rest: user_id {message.from_user.id} ليس المطور")
+        return
+
+    chat_id = message.chat.id
+    message_id = message.message_id
+
+    # حفظ بيانات الرسالة في ملف JSON
+    with open(DATA_FILE, "w", encoding='utf-8') as f:
+        json.dump({"chat_id": chat_id}, f, ensure_ascii=False)
+
+    progress_messages = [
+        "■ 10%", "■■ 20%", "■■■ 30%", "■■■■ 40%", 
+        "■■■■■ 50%", "■■■■■■ 60%", "■■■■■■■ 70%", 
+        "■■■■■■■■ 80%", "■■■■■■■■■ 90%", "■■■■■■■■■■ 100%"
+    ]
+
+    msg = bot.send_message(chat_id, "🚀 <b>جاري تحديث البوت عزيزي المطور...</b> ⏳\n", parse_mode="HTML")
+
+    for progress in progress_messages:
+        time.sleep(0.5)
+        bot.edit_message_text(
+            f"🚀 <b>جاري تحديث البوت عزيزي المطور...</b> ⏳\n{progress}",
+            chat_id, msg.message_id, parse_mode="HTML"
+        )
+
+    time.sleep(1)
+    final_msg = bot.edit_message_text(
+        "⎙ <b>جاري إعادة تشغيل البوت وجلب التحديثات...</b> ✨",
+        chat_id, msg.message_id, parse_mode="HTML"
+    )
+
+    # حفظ معرف الرسالة الأخيرة
+    with open(DATA_FILE, "w", encoding='utf-8') as f:
+        json.dump({"chat_id": chat_id, "last_message_id": final_msg.message_id}, f, ensure_ascii=False)
+
+    time.sleep(2)
+
+    # حذف الرسالة الأخيرة
+    try:
+        bot.delete_message(chat_id, final_msg.message_id)
+    except Exception as e:
+        print(f"[ERROR] فشل في حذف رسالة إعادة التشغيل: {e}")
+
+    # سحب التحديثات من GitHub
+    try:
+        subprocess.run(["git", "pull", "origin", "main"], check=True)
+        print("[INFO] تم سحب التحديثات من GitHub بنجاح")
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] فشل في سحب التحديثات من GitHub: {e}")
+
+    # إعادة تشغيل البوت
+    os.execv(sys.executable, ['python3', 'bot.py'])  # استبدل 'bot.py' باسم ملف البوت الفعلي
+
+def send_restart_message():
+    """إرسال رسالة جديدة بعد إعادة التشغيل"""
+    time.sleep(3)  # تأخير للتأكد من جاهزية البوت
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding='utf-8') as f:
+                data = json.load(f)
+                chat_id = data.get("chat_id")
+                if chat_id:
+                    bot.send_message(
+                        chat_id,
+                        "✅ <b>تـم تشغـيل البوت بنجاح وجلب التحـديثات الأخـيرة عـزيزي المطور ✔️</b>",
+                        parse_mode="HTML"
+                    )
+            os.remove(DATA_FILE)  # حذف الملف بعد الاستخدام
+        except Exception as e:
+            print(f"[ERROR] خطأ بعد إعادة التشغيل: {e}")
+
+# استدعاء دالة إرسال الرسالة بعد إعادة التشغيل
+if os.path.exists(DATA_FILE):
+    send_restart_message()
 
 # أمر التفعيل /ran
 @bot.message_handler(commands=['ran'])
@@ -1231,19 +1314,28 @@ load_banned_words()
 threading.Thread(target=process_media_worker, daemon=True).start()
 
 # تشغيل البوت
+def restart_bot():
+    """إعادة تشغيل البوت"""
+    print("[INFO] إعادة تشغيل البوت التلقائية...")
+    os.execv(sys.executable, ['python3'] + sys.argv)
 
+def schedule_restart():
+    """جدولة إعادة التشغيل كل 5 دقائق"""
+    threading.Timer(300, schedule_restart).start()  # 300 ثانية = 5 دقائق
+    restart_bot()
 
 if __name__ == "__main__":
     # تشغيل خيط التحقق من تغيير اليوم
     threading.Thread(target=check_day_change, daemon=True).start()
+    # تشغيل خيط جدولة إعادة التشغيل
+    threading.Thread(target=schedule_restart, daemon=True).start()
     print("البوت يعمل الآن...")
-
-    # حلقة إعادة تشغيل تلقائية
+    
     while True:
         try:
             bot.polling(non_stop=True, timeout=60, long_polling_timeout=60)
         except Exception as e:
             print(f"[ERROR] خطأ في تشغيل البوت: {e}")
             print("[INFO] جاري إعادة المحاولة بعد 10 ثوان...")
-            time.sleep(10)  # تأخير 10 ثوان قبل إعادة المحاولة
+            time.sleep(10)
             continue
