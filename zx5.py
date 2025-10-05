@@ -613,7 +613,7 @@ def restart_bot_command(message):
         print(f"[ERROR] فشل في سحب التحديثات من GitHub: {e}")
 
     # إعادة تشغيل البوت
-    os.execv(sys.executable, ['python3', 'bot.py'])  # استبدل 'bot.py' باسم ملف البوت الفعلي
+    os.execv(sys.executable, ['python3', 'zx5.py'])  # استبدل 'bot.py' باسم ملف البوت الفعلي
 
 def send_restart_message():
     """إرسال رسالة جديدة بعد إعادة التشغيل"""
