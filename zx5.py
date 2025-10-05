@@ -1074,22 +1074,54 @@ def handle_video(message):
 # معالجة الصور المتحركة (GIF)
 @bot.message_handler(content_types=['animation'])
 def handle_gif(message):
+    """معالجة الصور المتحركة (GIF)"""
     if not is_group_activated(message.chat.id):
+        logging.info(f"الكروب {message.chat.id} غير مفعل، تجاهل الصورة المتحركة")
         return
     
-    file_info = bot.get_file(message.animation.file_id)
-    file_url = f'https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}'
-    response = requests.get(file_url)
-    if response.status_code == 200:
+    try:
+        logging.info(f"تلقيت صورة متحركة من user_id: {message.from_user.id}, chat_id: {message.chat.id}")
+        
+        # الحصول على ملف الصورة المتحركة
+        file_info = bot.get_file(message.animation.file_id)
+        file_url = f'https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}'
+        logging.info(f"جاري تحميل الصورة المتحركة من: {file_url}")
+        
+        response = requests.get(file_url, timeout=10)
+        if response.status_code != 200:
+            logging.error(f"فشل تحميل الصورة المتحركة: HTTP {response.status_code}")
+            bot.reply_to(message, "⚠️ فشل تحميل الصورة المتحركة، حاول لاحقًا")
+            return
+
+        # إضافة الملف إلى قائمة الانتظار للتحقق من المحتوى الإباحي
+        logging.info("إضافة الصورة المتحركة إلى media_queue")
         media_queue.put((response.content, '.gif', message, 'صورة متحركة'))
-    
-    if is_violence_enabled(message.chat.id):
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".gif") as tmp_file:
-            tmp_file.write(response.content)
-            temp_path = tmp_file.name
-        if check_gif(temp_path):
-            handle_violation(message, 'صورة متحركة', 'عنف')
-        os.remove(temp_path)
+
+        # التحقق من العنف إذا كان مفعلاً
+        if is_violence_enabled(message.chat.id):
+            logging.info(f"التحقق من العنف للصورة المتحركة في chat_id: {message.chat.id}")
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".gif") as tmp_file:
+                tmp_file.write(response.content)
+                temp_path = tmp_file.name
+                logging.info(f"تم إنشاء ملف مؤقت: {temp_path}")
+            
+            try:
+                if check_gif(temp_path):
+                    logging.info("تم اكتشاف عنف في الصورة المتحركة")
+                    handle_violation(message, 'صورة متحركة', 'عنف')
+                else:
+                    logging.info("الصورة المتحركة خالية من العنف")
+            finally:
+                # التأكد من حذف الملف المؤقت
+                try:
+                    os.remove(temp_path)
+                    logging.info(f"تم حذف الملف المؤقت: {temp_path}")
+                except Exception as e:
+                    logging.error(f"فشل حذف الملف المؤقت {temp_path}: {e}")
+
+    except Exception as e:
+        logging.error(f"خطأ أثناء معالجة الصورة المتحركة: {e}")
+        bot.reply_to(message, "⚠️ حدث خطأ أثناء معالجة الصورة المتحركة، جاري المحاولة لاحقًا...")
 
 # معالجة الرموز التعبيرية المميزة
 @bot.message_handler(func=lambda message: message.entities and any(entity.type == 'custom_emoji' for entity in message.entities))
