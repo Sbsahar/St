@@ -27,7 +27,7 @@ CHANNEL_URL = 'https://t.me/S_Y_K'
 PROGRAMMER_URL = 'https://t.me/S_Y_K'
 DEVELOPER_ID = '6305419238'
 NSFW_THRESHOLD = 0.7
-VIOLENCE_THRESHOLD = 0.7
+VIOLENCE_THRESHOLD = 0.6
 bot = telebot.TeleBot(TOKEN)
 BOT_ID = bot.get_me().id
 
