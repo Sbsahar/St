@@ -481,15 +481,14 @@ def check_day_change():
             current_date = today
         time.sleep(3600)
 
-# أمر البدء مع الاشتراك الإجباري والأزرار (مع logging إضافي)
-# أمر البدء مع الاشتراك الإجباري والأزرار (مع logging إضافي)
+# أمر البدء مع الاشتراك الإجباري والأزرار (بعد التعديل)
 @bot.message_handler(commands=['start'])
 def start(message):
     print(f"[DEBUG] تلقيت أمر /start من user_id: {message.from_user.id}, chat_id: {message.chat.id}")
     try:
         user_id = message.from_user.id
-        
-        # تفعيل التحقق من الاشتراك
+
+        # التحقق من الاشتراك الإجباري (يمكنك تعطيله إذا أردت)
         subscription_enabled = True  
         if subscription_enabled and not is_user_subscribed(user_id):
             print(f"[DEBUG] المستخدم {user_id} لم يشترك في القناة")
@@ -497,7 +496,7 @@ def start(message):
             subscribe_button = telebot.types.InlineKeyboardButton("اشترك الآن", url=CHANNEL_URL)
             check_button = telebot.types.InlineKeyboardButton("🔄 تحقق من الاشتراك", callback_data="check_subscription")
             markup.add(subscribe_button, check_button)
-            
+
             bot.send_message(
                 message.chat.id,
                 f"⚠️ يجب عليك الاشتراك في القناة أولاً لاستخدام البوت!\n\n👉 {CHANNEL_URL}",
@@ -515,9 +514,10 @@ def start(message):
         bot.send_message(
             message.chat.id,
             (
-                "<b>اهلا بك في بوت لحماية المتطور الخاص بلميديا المقدم من سورس سوريا 🇸🇾</b>\n\n"
-                "للمزيد من الخيارات استعمل في المجموعة /setting واتبع التعليمات\n"
-                "للاطلاع على اشتراكك في البوت استخدم الامر /subscription في مجموعتك المفعلة"
+                "<b>اهلاً بك في بوت الحماية المتطور الخاص بالميديا المقدم من سورس سوريا 🇸🇾</b>\n\n"
+                "🛡️ يقوم البوت بمراقبة الصور، الفيديوهات، الملصقات، والرموز التعبيرية لمنع أي محتوى مخالف.\n\n"
+                "للمزيد من الخيارات استعمل في المجموعة /setting واتبع التعليمات.\n"
+                "لعرض إحصائيات المخالفات في مجموعتك استخدم الأمر /stats 📊"
             ),
             parse_mode="HTML",
             reply_markup=markup
@@ -525,36 +525,6 @@ def start(message):
         print(f"[DEBUG] أرسلت رسالة الترحيب لـ user_id: {user_id}")
     except Exception as e:
         print(f"[ERROR] خطأ في معالجة /start لـ user_id: {user_id}: {e}")
-
-# التعامل مع زر التحقق من الاشتراك
-@bot.callback_query_handler(func=lambda call: call.data == "check_subscription")
-def check_subscription_callback(call):
-    try:
-        user_id = call.from_user.id
-        print(f"[DEBUG] تلقيت طلب تحقق من الاشتراك من user_id: {user_id}")
-        if is_user_subscribed(user_id):
-            markup = telebot.types.InlineKeyboardMarkup()
-            programmer_button = telebot.types.InlineKeyboardButton("المطور", url=PROGRAMMER_URL)
-            add_to_group_button = telebot.types.InlineKeyboardButton("➕ أضفني إلى مجموعتك", url=f"https://t.me/{bot.get_me().username}?startgroup=true")
-            markup.add(programmer_button, add_to_group_button)
-
-            bot.edit_message_text(
-                (
-                    "<b>اهلا بك في بوت لحماية المتطور الخاص بلميديا المقدم من سورس سوريا 🇸🇾</b>\n\n"
-                    "للمزيد من الخيارات استعمل في المجموعة /setting واتبع التعليمات\n"
-                    "للاطلاع على اشتراكك في البوت استخدم الامر /subscription في مجموعتك المفعلة"
-                ),
-                call.message.chat.id,
-                call.message.message_id,
-                parse_mode="HTML",
-                reply_markup=markup
-            )
-            print(f"[DEBUG] أرسلت رسالة الترحيب بعد التحقق لـ user_id: {user_id}")
-        else:
-            bot.answer_callback_query(call.id, "⚠️ لم تشترك بعد! الرجاء الاشتراك في القناة أولاً.", show_alert=True)
-            print(f"[DEBUG] المستخدم {user_id} لم يشترك بعد")
-    except Exception as e:
-        print(f"[ERROR] خطأ في معالجة check_subscription لـ user_id: {user_id}: {e}")
 
 
 @bot.message_handler(commands=['rest'])
