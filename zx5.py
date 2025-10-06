@@ -637,6 +637,46 @@ def send_restart_message():
 if os.path.exists(DATA_FILE):
     send_restart_message()
 
+# أمر /botstats لعرض إحصائيات المجموعات والمستخدمين
+@bot.message_handler(commands=['botstats'])
+def show_bot_stats(message):
+    try:
+        # تحقق من صلاحيات المطور فقط
+        if str(message.from_user.id) not in [DEVELOPER_ID, DEVELOPER_CHAT_ID]:
+            bot.reply_to(message, "❌ هذا الأمر مخصص للمطور فقط!")
+            return
+
+        # حساب عدد المجموعات من ملف activations.json
+        group_count = len(activations)
+
+        # حساب عدد المستخدمين من ملف user_violations.json
+        try:
+            user_count = len(user_violations)
+        except:
+            user_count = 0
+
+        # التاريخ الحالي
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # رسالة الإحصائيات
+        stats_msg = (
+            "📊 <b>إحصائيات البوت العامة</b>\n"
+            "━━━━━━━━━━━━━━━\n"
+            f"🏘️ عدد المجموعات المفعلة: <b>{group_count}</b>\n"
+            f"👥 عدد المستخدمين للبوت: <b>{user_count}</b>\n"
+            f"🕐 آخر تحديث: <b>{now}</b>\n"
+            "━━━━━━━━━━━━━━━\n"
+            "📢 البوت يعمل الآن بكفاءة تامة ✅"
+        )
+
+        bot.reply_to(message, stats_msg, parse_mode="HTML")
+        print(f"[DEBUG] تم عرض إحصائيات البوت: مجموعات={group_count}, مستخدمين={user_count}")
+
+    except Exception as e:
+        print(f"[ERROR] خطأ في أمر /botstats: {e}")
+        bot.reply_to(message, "⚠️ حدث خطأ أثناء عرض الإحصائيات!")
+
+
 # أمر التفعيل /ran
 @bot.message_handler(commands=['ran'])
 def activate_bot(message):
