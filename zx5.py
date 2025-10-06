@@ -1331,8 +1331,8 @@ def handle_unban_callback(call):
         
         print(f"[DEBUG] تلقيت طلب رفع قيود من user_id: {user_id} للمستخدم: {restricted_user_id} في chat_id: {chat_id}")
         
-        # التحقق مما إذا كان المستخدم مشرفًا أو المطور
-        if is_user_admin(str(chat_id), str(user_id)) or str(user_id) == DEVELOPER_ID:
+        # التحقق مما إذا كان المستخدم مشرفًا أو أحد المطورين
+        if is_user_admin(str(chat_id), str(user_id)) or str(user_id) in [DEVELOPER_ID, DEVELOPER_CHAT_ID]:
             # رفع القيود عن المستخدم
             bot.restrict_chat_member(
                 chat_id,
@@ -1358,12 +1358,13 @@ def handle_unban_callback(call):
             )
             print(f"[DEBUG] تم رفع القيود عن user_id: {restricted_user_id} بواسطة user_id: {user_id}")
         else:
-            bot.answer_callback_query(call.id, "🚫 لاتلعب! هذا الزر ليس لك، مخصص للمشرفين والمطور فقط!", show_alert=True)
+            bot.answer_callback_query(call.id, "🚫 لاتلعب! هذا الزر ليس لك، مخصص للمشرفين والمطورين فقط!", show_alert=True)
             print(f"[DEBUG] رفض رفع القيود: user_id {user_id} ليس مشرفًا أو مطورًا")
             
     except Exception as e:
         print(f"[ERROR] خطأ في معالجة رفع القيود لـ user_id: {user_id}, restricted_user_id: {restricted_user_id}: {e}")
         bot.answer_callback_query(call.id, "⚠️ حدث خطأ أثناء محاولة رفع القيود!", show_alert=True)
+
 
 # معالج رسالة كلمة "المطور"
 @bot.message_handler(func=lambda message: message.text and "المطور" in message.text.lower())
