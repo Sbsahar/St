@@ -15,6 +15,7 @@ from transformers import pipeline, CLIPProcessor, CLIPModel
 import logging
 import torch
 import sys
+import imagehash
 
 # إعداد التسجيل
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -74,6 +75,8 @@ def load_banned_groups():
             banned_groups = set(json.load(f))
     except (FileNotFoundError, json.JSONDecodeError):
         banned_groups = set()
+        
+
 
 # حفظ المجموعات المحظورة
 def save_banned_groups():
@@ -139,6 +142,27 @@ def load_banned_words():
 def save_banned_words():
     with open(BANNED_WORDS_FILE, 'w', encoding='utf-8') as f:
         json.dump(banned_words, f, ensure_ascii=False, indent=4)
+
+
+def is_media_allowed(image_path):
+    try:
+        # احسب هاش الصورة الجديدة
+        new_hash = imagehash.average_hash(Image.open(image_path))
+        
+        # قم بمقارنة مع كل الصور في المجلد
+        for allowed_file in os.listdir(ALLOWED_MEDIA_FOLDER):
+            allowed_path = os.path.join(ALLOWED_MEDIA_FOLDER, allowed_file)
+            if os.path.isfile(allowed_path):
+                allowed_hash = imagehash.average_hash(Image.open(allowed_path))
+                
+                # مسافة الهاش: إذا كانت أقل من 5، فهي مشابهة جدًا (يمكن تعديل القيمة حسب الحاجة)
+                if new_hash - allowed_hash < 5:
+                    print(f"[ALLOWED] تم العثور على تطابق مع {allowed_file}")
+                    return True
+        return False
+    except Exception as e:
+        print(f"[ERROR] خطأ في is_media_allowed: {e}")
+        return False
 
 # التحقق إذا كانت المجموعة مفعلة
 def is_group_activated(chat_id):
@@ -1146,8 +1170,10 @@ def handle_sticker(message):
         # ✅ تحقق إن كانت الميديا مسموحة مسبقاً
         if is_media_allowed(temp_path):
             os.remove(temp_path)
-            return
+            print(f"[SKIPPED] ملصق مسموح به، تم التخطي.")
+            return  # تخطي الفحص تمامًا
 
+        # إذا لم تكن مسموحة، قم بالفحص الطبيعي
         res = check_image_safety(temp_path)
         if res == 'nude':
             handle_violation(message, 'ملصق', 'إباحية')
