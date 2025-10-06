@@ -696,8 +696,8 @@ def add_allowed_media(message):
 def add_blocked_media(message):
     """إضافة الميديا إلى قائمة المحظورة بواسطة المطور"""
     try:
-        # تحقق من أن المستخدم هو المطور
-        if str(message.from_user.id) != DEVELOPER_ID:
+        # تحقق من أن المستخدم هو المطور إما بالـ ID أو بالـ CHAT_ID
+        if str(message.from_user.id) not in [DEVELOPER_ID, DEVELOPER_CHAT_ID]:
             bot.reply_to(message, "❌ هذا الأمر مخصص للمطور فقط!")
             return
 
@@ -708,7 +708,7 @@ def add_blocked_media(message):
 
         replied = message.reply_to_message
 
-        # تحقق إن كانت الرسالة تحتوي ملصق (يمكن توسيعها لأنواع أخرى مثل photo أو animation)
+        # تحقق إن كانت الرسالة تحتوي ملصق
         if replied.content_type == 'sticker' and replied.sticker.thumb:
             file_info = bot.get_file(replied.sticker.thumb.file_id)
             file_data = requests.get(f'https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}').content
