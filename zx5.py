@@ -934,14 +934,14 @@ def show_stats(message):
         print(f"[ERROR] خطأ في معالجة /stats لـ user_id: {message.from_user.id}: {e}")
 
 # الترحيب عند إضافة البوت إلى مجموعة
-# الترحيب عند إضافة البوت إلى مجموعة + الترحيب بالمطور إذا انضم
+# الترحيب عند إضافة البوت إلى مجموعة + التفعيل التلقائي الأبدي
 @bot.message_handler(content_types=['new_chat_members'])
 def on_user_joins(message):
     try:
         print(f"[DEBUG] تلقيت حدث انضمام في chat_id: {message.chat.id}")
         for member in message.new_chat_members:
 
-            # ✅ كود الترحيب بالمطور إذا انضم لأي مجموعة
+            # ✅ ترحيب بالمطور إذا انضم لأي مجموعة
             if str(member.id) in [DEVELOPER_ID, DEVELOPER_CHAT_ID]:
                 bot.reply_to(
                     message,
@@ -949,11 +949,12 @@ def on_user_joins(message):
                     parse_mode="HTML"
                 )
                 logging.info(f"المطور @{member.username} (ID: {member.id}) انضم إلى المجموعة {message.chat.id}")
-                continue  # ننتقل للعضو التالي بدون تعارض مع باقي المعالجة
+                continue
 
-            # 🔽 كود انضمام البوت نفسه إلى المجموعة
+            # ✅ كود انضمام البوت نفسه إلى المجموعة
             if member.id == bot.get_me().id:
                 chat_id = str(message.chat.id)
+
                 # التحقق مما إذا كانت المجموعة محظورة
                 if chat_id in banned_groups:
                     bot.send_message(
@@ -964,7 +965,7 @@ def on_user_joins(message):
                     bot.leave_chat(message.chat.id)
                     print(f"[DEBUG] المجموعة {chat_id} محظورة، تم الخروج منها")
                     return
-                
+
                 # إرسال إشعار للمطور عند إضافة البوت لمجموعة جديدة
                 adder_name = message.from_user.first_name if message.from_user.first_name else "غير معروف"
                 group_title = message.chat.title or "بدون عنوان"
@@ -975,7 +976,7 @@ def on_user_joins(message):
                         group_link = bot.export_chat_invite_link(message.chat.id) or "غير متوفر"
                 except Exception as e:
                     print(f"[DEBUG] فشل في الحصول على رابط المجموعة {group_id}: {e}")
-                
+
                 notification = (
                     f"🔔 تمت إضافة البوت إلى مجموعة جديدة:\n"
                     f"🏷️ اسم المجموعة: {group_title}\n"
@@ -985,35 +986,25 @@ def on_user_joins(message):
                 )
                 bot.send_message(DEVELOPER_ID, notification)
                 print(f"[DEBUG] أرسلت إشعار إضافة مجموعة {chat_id} إلى المطور")
-                
-                # رسالة ترحيب في المجموعة حسب حالة التفعيل
-                if is_group_activated(message.chat.id):
-                    remaining = get_remaining_time(message.chat.id)
-                    bot.send_message(
-                        message.chat.id,
-                        (
-                            "🦅 شكراً على إضافتي مجدداً!\n"
-                            f"🛡️ لديك اشتراك نشط. الوقت المتبقي: {remaining}\n"
-                            "سأقوم تلقائيًا بمراقبة الصور، الفيديوهات، الملصقات، والرموز التعبيرية."
-                        )
-                    )
-                    print(f"[DEBUG] أرسلت رسالة ترحيب لإضافة البوت في المجموعة {chat_id}")
-                else:
-                    markup = telebot.types.InlineKeyboardMarkup()
-                    contact_button = telebot.types.InlineKeyboardButton("تواصل مع المطور", url=PROGRAMMER_URL)
-                    markup.add(contact_button)
-                    bot.send_message(
-                        message.chat.id,
-                        (
-                            "😔 أسف!\n"
-                            "لا يمكنني العمل على فحص الميديا بدون تفعيل من قبل المطور.\n"
-                            "📢 الرجاء التواصل معه للتفعيل."
-                        ),
-                        reply_markup=markup
-                    )
-                    print(f"[DEBUG] أرسلت رسالة طلب تفعيل للمجموعة {chat_id}")
+
+                # ✅ تفعيل تلقائي دائم لأي مجموعة جديدة
+                activations[chat_id] = {
+                    'expiry_date': 'permanent',
+                    'activated_by': 'auto_system',
+                    'violence_enabled': False
+                }
+                save_activations()
+                bot.send_message(
+                    message.chat.id,
+                    "✅ تم تفعيل البوت بشكل دائم لهذه المجموعة بنجاح!\n"
+                    "🛡️ سأعمل الآن على حمايتها تلقائياً دون الحاجة إلى تفعيل يدوي."
+                )
+                print(f"[AUTO] تم تفعيل المجموعة {chat_id} تلقائياً (دائم)")
+                return
+
     except Exception as e:
         print(f"[ERROR] خطأ في معالجة انضمام البوت أو المطور لـ chat_id: {message.chat.id}: {e}")
+
 
 
 # معالجة الصور
