@@ -676,6 +676,57 @@ def show_bot_stats(message):
         print(f"[ERROR] خطأ في أمر /botstats: {e}")
         bot.reply_to(message, "⚠️ حدث خطأ أثناء عرض الإحصائيات!")
 
+# أمر /broadcast لإرسال رسالة جماعية إلى كل المجموعات
+@bot.message_handler(commands=['broadcast'])
+def broadcast_message(message):
+    try:
+        # السماح فقط للمطور
+        if str(message.from_user.id) not in [DEVELOPER_ID, DEVELOPER_CHAT_ID]:
+            bot.reply_to(message, "❌ هذا الأمر مخصص للمطور فقط!")
+            return
+
+        # التحقق من وجود نص الرسالة بعد الأمر
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            bot.reply_to(message, "❌ استخدم: /broadcast <نص الرسالة>")
+            return
+
+        broadcast_text = parts[1]
+        total_groups = len(activations)
+        success = 0
+        failed = 0
+
+        bot.reply_to(message, f"📢 جاري إرسال الإذاعة إلى <b>{total_groups}</b> مجموعة...\n⏳ الرجاء الانتظار.", parse_mode="HTML")
+
+        for chat_id in list(activations.keys()):
+            try:
+                bot.send_message(chat_id, f"📢 <b>إعلان من المطور:</b>\n{broadcast_text}", parse_mode="HTML")
+                success += 1
+                time.sleep(0.5)  # لتفادي حدود التلغرام
+            except Exception as e:
+                # تجاهل المجموعات التي لم يعد فيها البوت
+                if "Forbidden" in str(e) or "chat not found" in str(e):
+                    print(f"[INFO] تم حذف البوت من المجموعة {chat_id} - سيتم تجاهلها")
+                    continue
+                else:
+                    print(f"[ERROR] فشل الإرسال إلى المجموعة {chat_id}: {e}")
+                    failed += 1
+
+        bot.send_message(
+            message.chat.id,
+            f"✅ تم إرسال الإذاعة بنجاح!\n\n"
+            f"📬 المجموعات المستلمة: {success}\n"
+            f"🚫 فشل الإرسال إلى: {failed}\n"
+            f"📊 المجموع الكلي: {total_groups}",
+            parse_mode="HTML"
+        )
+
+        print(f"[BROADCAST] تم إرسال الإذاعة إلى {success}/{total_groups} مجموعة بنجاح.")
+
+    except Exception as e:
+        print(f"[ERROR] خطأ في /broadcast: {e}")
+        bot.reply_to(message, "⚠️ حدث خطأ أثناء محاولة إرسال الإذاعة!")
+
 
 # أمر التفعيل /ran
 @bot.message_handler(commands=['ran'])
@@ -1037,7 +1088,7 @@ def on_user_joins(message):
                 bot.send_message(
                     message.chat.id,
                     "✅ تم تفعيل البوت بشكل دائم لهذه المجموعة بنجاح!\n"
-                    "🛡️ سأعمل الآن على حمايتها تلقائياً دون الحاجة إلى تفعيل يدوي."
+                    "🛡️ سأعمل الآن على حمايتها تلقائياً شكراً لاضافتي"
                 )
                 print(f"[AUTO] تم تفعيل المجموعة {chat_id} تلقائياً (دائم)")
                 return
