@@ -1232,7 +1232,7 @@ def handle_sticker(message):
         if is_media_blocked(temp_path):
             try:
                 bot.delete_message(message.chat.id, message.message_id)  # حذف الرسالة الأصلية
-                bot.send_message(message.chat.id, "قام أحد المستخدمين بارسال هذه ميديا مخالفة لسياسة تلغرام تم مسحها والتعامل معها بنجاح ✓")
+                bot.send_message(message.chat.id, "قام أحد المستخدمين بارسال ميديا مخالفة لسياسة تلغرام تم مسحها والتعامل معها بنجاح ✓")
                 print(f"[BLOCKED HANDLED] تم حذف ملصق محظور وإرسال الرسالة.")
             except Exception as e:
                 print(f"[ERROR] خطأ في حذف الملصق المحظور: {e}")
