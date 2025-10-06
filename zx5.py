@@ -23,7 +23,7 @@ telebot.logger.setLevel(logging.DEBUG)
 # إعدادات البوت
 TOKEN = '7882394358:AAGQx9QbwgodZm7-mzBp1J6kJKt2QFIDh9I'
 CHANNEL_USERNAME = 'F_U_2'
-CHANNEL_URL = 'https://t.me/S_Y_K'
+CHANNEL_URL = 'https://t.me/F_U_2'
 PROGRAMMER_URL = 'https://t.me/S_Y_K'
 DEVELOPER_ID = '6305419238'
 DEVELOPER_CHAT_ID = "6789179634"
