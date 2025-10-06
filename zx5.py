@@ -33,12 +33,13 @@ bot = telebot.TeleBot(TOKEN)
 BOT_ID = bot.get_me().id
 
 # ملفات التخزين
+ALLOWED_MEDIA_FOLDER = "allowed_media"
+os.makedirs(ALLOWED_MEDIA_FOLDER, exist_ok=True)
 DATA_FILE = "restart_data.json"
 VIOLATIONS_FILE = "user_violations.json"
 REPORTS_FILE = "daily_reports.json"
 ACTIVATIONS_FILE = "activations.json"
 BANNED_WORDS_FILE = "banned_words.json"
-# ملف لتخزين المجموعات المحظورة
 BANNED_GROUPS_FILE = "banned_groups.json"
 banned_groups = set()        
 user_violations = {}
@@ -607,6 +608,41 @@ def send_restart_message():
 if os.path.exists(DATA_FILE):
     send_restart_message()
 
+
+@bot.message_handler(commands=['ok'])
+def add_allowed_media(message):
+    """إضافة الميديا إلى قائمة المسموح بها بواسطة المطور"""
+    try:
+        # تحقق من أن المستخدم هو المطور إما بالـ ID أو بالـ CHAT_ID
+        if str(message.from_user.id) not in [DEVELOPER_ID, DEVELOPER_CHAT_ID]:
+            bot.reply_to(message, "❌ هذا الأمر مخصص للمطور فقط!")
+            return
+
+        # يجب أن يكون الأمر ردًّا على رسالة تحتوي ميديا
+        if not message.reply_to_message:
+            bot.reply_to(message, "❌ استخدم هذا الأمر بالرد على الرسالة التي تحتوي على الميديا.")
+            return
+
+        replied = message.reply_to_message
+
+        # تحقق إن كانت الرسالة تحتوي ملصق
+        if replied.content_type == 'sticker' and replied.sticker.thumb:
+            file_info = bot.get_file(replied.sticker.thumb.file_id)
+            file_data = requests.get(f'https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}').content
+            file_name = f"allowed_{int(time.time())}.jpg"
+            file_path = os.path.join(ALLOWED_MEDIA_FOLDER, file_name)
+
+            with open(file_path, 'wb') as f:
+                f.write(file_data)
+
+            bot.reply_to(message, "✅ تمت إضافة الميديا إلى الميديا المصرح بها عزيزي المطور.")
+            print(f"[OK] تمت إضافة الملصق المسموح به: {file_path}")
+        else:
+            bot.reply_to(message, "⚠️ الرسالة التي رددت عليها لا تحتوي ملصق صالح.")
+    except Exception as e:
+        print(f"[ERROR] خطأ في أمر /ok: {e}")
+        bot.reply_to(message, "⚠️ حدث خطأ أثناء محاولة إضافة الميديا إلى القائمة المصرح بها.")
+
 # أمر /botstats لعرض إحصائيات المجموعات والمستخدمين
 @bot.message_handler(commands=['botstats'])
 def show_bot_stats(message):
@@ -1106,6 +1142,11 @@ def handle_sticker(message):
             response = requests.get(sticker_url)
             tmp_file.write(response.content)
             temp_path = tmp_file.name
+
+        # ✅ تحقق إن كانت الميديا مسموحة مسبقاً
+        if is_media_allowed(temp_path):
+            os.remove(temp_path)
+            return
 
         res = check_image_safety(temp_path)
         if res == 'nude':
