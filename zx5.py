@@ -36,6 +36,9 @@ BOT_ID = bot.get_me().id
 # ملفات التخزين
 ALLOWED_MEDIA_FOLDER = "allowed_media"
 os.makedirs(ALLOWED_MEDIA_FOLDER, exist_ok=True)
+# مجلد الميديا المحظورة
+BLOCKED_MEDIA_FOLDER = "blocked_media"
+os.makedirs(BLOCKED_MEDIA_FOLDER, exist_ok=True)
 DATA_FILE = "restart_data.json"
 VIOLATIONS_FILE = "user_violations.json"
 REPORTS_FILE = "daily_reports.json"
@@ -162,6 +165,28 @@ def is_media_allowed(image_path):
         return False
     except Exception as e:
         print(f"[ERROR] خطأ في is_media_allowed: {e}")
+        return False
+
+
+# دالة للتحقق إذا كانت الصورة محظورة (باستخدام perceptual hashing)
+def is_media_blocked(image_path):
+    try:
+        # احسب هاش الصورة الجديدة
+        new_hash = imagehash.average_hash(Image.open(image_path))
+        
+        # قم بمقارنة مع كل الصور في المجلد
+        for blocked_file in os.listdir(BLOCKED_MEDIA_FOLDER):
+            blocked_path = os.path.join(BLOCKED_MEDIA_FOLDER, blocked_file)
+            if os.path.isfile(blocked_path):
+                blocked_hash = imagehash.average_hash(Image.open(blocked_path))
+                
+                # مسافة الهاش: إذا كانت أقل من 5، فهي مشابهة جدًا (يمكن تعديل القيمة حسب الحاجة)
+                if new_hash - blocked_hash < 5:
+                    print(f"[BLOCKED] تم العثور على تطابق مع {blocked_file}")
+                    return True
+        return False
+    except Exception as e:
+        print(f"[ERROR] خطأ في is_media_blocked: {e}")
         return False
 
 # التحقق إذا كانت المجموعة مفعلة
@@ -666,6 +691,42 @@ def add_allowed_media(message):
     except Exception as e:
         print(f"[ERROR] خطأ في أمر /ok: {e}")
         bot.reply_to(message, "⚠️ حدث خطأ أثناء محاولة إضافة الميديا إلى القائمة المصرح بها.")
+        
+@bot.message_handler(commands=['no'])
+def add_blocked_media(message):
+    """إضافة الميديا إلى قائمة المحظورة بواسطة المطور"""
+    try:
+        # تحقق من أن المستخدم هو المطور
+        if str(message.from_user.id) != DEVELOPER_ID:
+            bot.reply_to(message, "❌ هذا الأمر مخصص للمطور فقط!")
+            return
+
+        # يجب أن يكون الأمر ردًّا على رسالة تحتوي ميديا
+        if not message.reply_to_message:
+            bot.reply_to(message, "❌ استخدم هذا الأمر بالرد على الرسالة التي تحتوي على الميديا.")
+            return
+
+        replied = message.reply_to_message
+
+        # تحقق إن كانت الرسالة تحتوي ملصق (يمكن توسيعها لأنواع أخرى مثل photo أو animation)
+        if replied.content_type == 'sticker' and replied.sticker.thumb:
+            file_info = bot.get_file(replied.sticker.thumb.file_id)
+            file_data = requests.get(f'https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}').content
+            file_name = f"blocked_{int(time.time())}.jpg"
+            file_path = os.path.join(BLOCKED_MEDIA_FOLDER, file_name)
+
+            with open(file_path, 'wb') as f:
+                f.write(file_data)
+
+            bot.reply_to(message, "✅ تمت إضافة الميديا إلى الميديا المحظورة عزيزي المطور.")
+            print(f"[NO] تمت إضافة الملصق المحظور: {file_path}")
+        else:
+            bot.reply_to(message, "⚠️ الرسالة التي رددت عليها لا تحتوي ملصق صالح.")
+    except Exception as e:
+        print(f"[ERROR] خطأ في أمر /no: {e}")
+        bot.reply_to(message, "⚠️ حدث خطأ أثناء محاولة إضافة الميديا إلى القائمة المحظورة.")
+
+
 
 # أمر /botstats لعرض إحصائيات المجموعات والمستخدمين
 @bot.message_handler(commands=['botstats'])
@@ -1167,13 +1228,24 @@ def handle_sticker(message):
             tmp_file.write(response.content)
             temp_path = tmp_file.name
 
-        # ✅ تحقق إن كانت الميديا مسموحة مسبقاً
+        # ✅ تحقق أولاً إن كانت الميديا محظورة (جديد)
+        if is_media_blocked(temp_path):
+            try:
+                bot.delete_message(message.chat.id, message.message_id)  # حذف الرسالة الأصلية
+                bot.send_message(message.chat.id, "قام أحد المستخدمين بارسال هذه ميديا مخالفة لسياسة تلغرام تم مسحها والتعامل معها بنجاح ✓")
+                print(f"[BLOCKED HANDLED] تم حذف ملصق محظور وإرسال الرسالة.")
+            except Exception as e:
+                print(f"[ERROR] خطأ في حذف الملصق المحظور: {e}")
+            os.remove(temp_path)
+            return  # تخطي باقي الفحوصات
+
+        # ✅ ثم تحقق إن كانت الميديا مسموحة مسبقاً (من الكود السابق)
         if is_media_allowed(temp_path):
             os.remove(temp_path)
             print(f"[SKIPPED] ملصق مسموح به، تم التخطي.")
-            return  # تخطي الفحص تمامًا
+            return
 
-        # إذا لم تكن مسموحة، قم بالفحص الطبيعي
+        # إذا لم تكن محظورة ولا مسموحة، قم بالفحص الطبيعي
         res = check_image_safety(temp_path)
         if res == 'nude':
             handle_violation(message, 'ملصق', 'إباحية')
