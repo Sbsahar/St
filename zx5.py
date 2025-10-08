@@ -1370,9 +1370,9 @@ def handle_unban_callback(call):
 
 @bot.message_handler(func=lambda message: message.text == 'معلومات النظام')
 def system_info(message):
-    # التحقق من أن المرسل هو المطور أو في دردشة المطور
-    if message.from_user.id != DEVELOPER_ID and message.chat.id != DEVELOPER_CHAT_ID:
-        bot.reply_to(message, "عذرًا، هذا الأمر متاح فقط للمطور.")
+    # التحقق من أن المرسل هو أحد المطورين (نفس منطق /broadcast)
+    if str(message.from_user.id) not in [DEVELOPER_ID, DEVELOPER_CHAT_ID]:
+        bot.reply_to(message, "❌ هذا الأمر مخصص للمطور فقط!")
         return
 
     try:
@@ -1423,7 +1423,7 @@ def system_info(message):
         # إرسال الرسالة مع تمكين تنسيق HTML
         bot.reply_to(message, response, parse_mode='HTML')
     except Exception as e:
-        bot.reply_to(message, f"حدث خطأ أثناء جلب معلومات النظام: {str(e)}")
+        bot.reply_to(message, f"⚠️ حدث خطأ أثناء جلب معلومات النظام: {str(e)}")
         print(f"[ERROR] خطأ في معالجة معلومات النظام لـ user_id: {message.from_user.id}: {e}")
 
 # معالج كلمة "المطور"
