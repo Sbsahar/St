@@ -1368,7 +1368,65 @@ def handle_unban_callback(call):
         bot.answer_callback_query(call.id, "⚠️ حدث خطأ أثناء محاولة رفع القيود!", show_alert=True)
 
 
-# معالج رسالة كلمة "المطور"
+@bot.message_handler(func=lambda message: message.text == 'معلومات النظام')
+def system_info(message):
+    # التحقق من أن المرسل هو المطور أو في دردشة المطور
+    if message.from_user.id != DEVELOPER_ID and message.chat.id != DEVELOPER_CHAT_ID:
+        bot.reply_to(message, "عذرًا، هذا الأمر متاح فقط للمطور.")
+        return
+
+    try:
+        # جمع معلومات النظام
+        os_info = platform.platform()
+        mem = psutil.virtual_memory()
+        ram_used = round(mem.used / (1024 ** 2))  # MB
+        ram_total = round(mem.total / (1024 ** 2))  # MB
+        ram_percent = mem.percent
+        disk = psutil.disk_usage('/')
+        disk_used = round(disk.used / (1024 ** 3))  # GB
+        disk_total = round(disk.total / (1024 ** 3))  # GB أو TB
+        disk_percent = disk.percent
+        disk_total_str = f"{disk_total}G" if disk_total < 1024 else f"{round(disk_total / 1024, 1)}T"
+        disk_used_str = f"{disk_used}G"
+        cpu_cores = psutil.cpu_count(logical=False) or psutil.cpu_count()
+        cpu_percent = psutil.cpu_percent(interval=1)
+        current_user = os.getlogin()
+        uptime_seconds = time.time() - psutil.boot_time()
+        uptime_days = int(uptime_seconds // (24 * 3600))
+        uptime_hours = int((uptime_seconds % (24 * 3600)) // 3600)
+        uptime_minutes = int((uptime_seconds % 3600) // 60)
+
+        # تنسيق الرسالة باستخدام HTML
+        response = (
+            "<b>معلومات نظام التشغيل عزيزي المطور</b>\n"
+            "<b>𝐒𝐞𝐫𝐯𝐞𝐫 𝐬𝐚𝐡𝐚𝐫</b>\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "<b>نظام التشغيل:</b>\n"
+            f"» {os_info}\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "<b>الذاكرة العشوائية:</b>\n"
+            f"» {ram_used}MB / {ram_total}MB ({ram_percent}%)\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "<b>وحدة التخزين:</b>\n"
+            f"» {disk_used_str} / {disk_total_str} ({disk_percent}%)\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "<b>المعالج:</b>\n"
+            f"» {cpu_cores} Core ({cpu_percent}%)\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "<b>الدخول:</b>\n"
+            f"» {current_user}\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "<b>مدة تشغيل السيرفر:</b>\n"
+            f"» {uptime_days} أيام، {uptime_hours} ساعات، {uptime_minutes} دقائق"
+        )
+
+        # إرسال الرسالة مع تمكين تنسيق HTML
+        bot.reply_to(message, response, parse_mode='HTML')
+    except Exception as e:
+        bot.reply_to(message, f"حدث خطأ أثناء جلب معلومات النظام: {str(e)}")
+        print(f"[ERROR] خطأ في معالجة معلومات النظام لـ user_id: {message.from_user.id}: {e}")
+
+# معالج كلمة "المطور"
 @bot.message_handler(func=lambda message: message.text and "المطور" in message.text.lower())
 def handle_developer_keyword(message):
     try:
@@ -1377,8 +1435,8 @@ def handle_developer_keyword(message):
         print(f"[DEBUG] أرسلت رد 'مطور البوت👈🏻 @S_Y_K' لـ user_id: {message.from_user.id}")
     except Exception as e:
         print(f"[ERROR] خطأ في معالجة كلمة 'المطور' لـ user_id: {message.from_user.id}: {e}")
-        
-# معالج رسالة كلمة "السورس"
+
+# معالج كلمة "السورس"
 @bot.message_handler(func=lambda message: message.text and "السورس" in message.text.lower())
 def handle_source_keyword(message):
     try:
@@ -1412,61 +1470,7 @@ def handle_source_keyword(message):
         
         print(f"[DEBUG] أرسلت رد '𝐒𝐘𝐑𝐈𝐀 𝐒𝐎𝐔𝐑𝐂𝐄 سورس سوريا' لـ user_id: {message.from_user.id}")
     except Exception as e:
-        print(f"[ERROR] خطأ في معالجة كلمة 'السورس' لـ user_id: {message.from_user.id}: {e}")                                                                                                        
-
-@bot.message_handler(func=lambda message: message.text == 'معلومات النظام')
-def system_info(message):
-    # التحقق من أن المرسل هو المطور أو في دردشة المطور
-    if message.from_user.id != DEVELOPER_ID and message.chat.id != DEVELOPER_CHAT_ID:
-        bot.reply_to(message, "عذرًا، هذا الأمر متاح فقط للمطور.")
-        return
-
-    # جمع معلومات النظام
-    os_info = platform.platform()
-    mem = psutil.virtual_memory()
-    ram_used = round(mem.used / (1024 ** 2))  # MB
-    ram_total = round(mem.total / (1024 ** 2))  # MB
-    ram_percent = mem.percent
-    disk = psutil.disk_usage('/')
-    disk_used = round(disk.used / (1024 ** 3))  # GB
-    disk_total = round(disk.total / (1024 ** 3))  # GB أو TB
-    disk_percent = disk.percent
-    disk_total_str = f"{disk_total}G" if disk_total < 1024 else f"{round(disk_total / 1024, 1)}T"
-    disk_used_str = f"{disk_used}G"
-    cpu_cores = psutil.cpu_count(logical=False) or psutil.cpu_count()
-    cpu_percent = psutil.cpu_percent(interval=1)
-    current_user = os.getlogin()
-    uptime_seconds = time.time() - psutil.boot_time()
-    uptime_days = int(uptime_seconds // (24 * 3600))
-    uptime_hours = int((uptime_seconds % (24 * 3600)) // 3600)
-    uptime_minutes = int((uptime_seconds % 3600) // 60)
-
-    # تنسيق الرسالة باستخدام HTML
-    response = (
-        "<b>معلومات نظام التشغيل عزيزي المطور</b>\n"
-        "<b>𝐒𝐞𝐫𝐯𝐞𝐫 𝐬𝐚𝐡𝐚𝐫</b>\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n"
-        "<b>نظام التشغيل:</b>\n"
-        f"» {os_info}\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n"
-        "<b>الذاكرة العشوائية:</b>\n"
-        f"» {ram_used}MB / {ram_total}MB ({ram_percent}%)\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n"
-        "<b>وحدة التخزين:</b>\n"
-        f"» {disk_used_str} / {disk_total_str} ({disk_percent}%)\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n"
-        "<b>المعالج:</b>\n"
-        f"» {cpu_cores} Core ({cpu_percent}%)\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n"
-        "<b>الدخول:</b>\n"
-        f"» {current_user}\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n"
-        "<b>مدة تشغيل السيرفر:</b>\n"
-        f"» {uptime_days} أيام، {uptime_hours} ساعات، {uptime_minutes} دقائق"
-    )
-
-    # إرسال الرسالة مع تمكين تنسيق HTML
-    bot.reply_to(message, response, parse_mode='HTML')
+        print(f"[ERROR] خطأ في معالجة كلمة 'السورس' لـ user_id: {message.from_user.id}: {e}")
 
 
 # معالجة الرسائل النصية للكلمات المحظورة
