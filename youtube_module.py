@@ -182,7 +182,7 @@ class YoutubeModule:
 
     def download_media(self, call, download_type, video_id, quality, loading_msg):
         cookies_file_path = 'cookies.txt'
-        
+
         # تحقق من وجود ملف الكوكيز
         if not self.load_cookies_from_file(cookies_file_path):
             self.bot.edit_message_text(
@@ -199,7 +199,8 @@ class YoutubeModule:
             'outtmpl': '%(title)s.%(ext)s',
             'timeout': 999999999,
             'retries': 10,
-            'cookiefile': cookies_file_path,  # الاعتماد فقط على ملف الكوكيز
+            'cookiefile': cookies_file_path,
+            'cookiesfrombrowser': ('firefox', None, None),  # استخدام Firefox لاستخراج الكوكيز
             'noplaylist': True,
             'quiet': False,
             'no_warnings': False,
@@ -210,11 +211,29 @@ class YoutubeModule:
             'simulate': False,
             'skip_unavailable_fragments': True,
             'youtube_include_dash': True,
-            'player_client': ['web', 'web_music'],  # دعم أفضل للكوكيز
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept-Language': 'en-US,en;q=0.9',
+            'player_client': ['web', 'android', 'ios', 'web_music'],  # محاكاة عملاء متعددين
+            'extractor_args': {
+                'youtube': {
+                    'skip': ['authcheck', 'dash'],  # تخطي التحقق من تسجيل الدخول وDASH
+                    'player_client': ['web', 'android', 'ios'],
+                    'lang': 'en',  # تحديد اللغة لتجنب القيود الجغرافية
+                }
             },
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+            },
+            'verbose': True,  # تسجيل تفصيلي للأخطاء
+            'geo_bypass': True,  # تجاوز القيود الجغرافية
+            'geo_bypass_country': 'US',  # محاكاة الموقع الجغرافي للولايات المتحدة
         }
 
         if download_type == 'audio':
@@ -240,7 +259,7 @@ class YoutubeModule:
             }
             max_size_mb = 30
 
-        for attempt in range(3):  # إعادة المحاولة حتى 3 مرات
+        for attempt in range(3):
             try:
                 video_url = f"https://www.youtube.com/watch?v={video_id}"
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -300,19 +319,19 @@ class YoutubeModule:
                     time.sleep(2)
                     self.bot.delete_message(call.message.chat.id, loading_msg.message_id)
 
-                    time.sleep(5)
+                    time.sleep(10)  # زيادة وقت الانتظار لتجنب الحظر
                     try:
                         self.bot.delete_message(call.message.chat.id, call.message.message_id)
                     except Exception:
                         pass
-                    break  # لو نجح، أخرج من اللوب
+                    break
 
             except Exception as e:
                 logging.error(f"Attempt {attempt + 1} failed for {video_id}: {str(e)}")
-                if attempt < 2:  # إذا لسه في محاولات
-                    time.sleep(5)  # انتظر 5 ثواني قبل المحاولة التالية
+                if attempt < 2:
+                    time.sleep(10)  # زيادة وقت الانتظار بين المحاولات
                     continue
-                else:  # لو فشل بعد 3 محاولات
+                else:
                     self.bot.edit_message_text(
                         f'<i>خطأ أثناء التحميل بعد 3 محاولات: {str(e)}</i>\n<i>الفيديو قد يكون محميًا أو هناك مشكلة في YouTube، جرب لاحقًا أو استخدم فيديو آخر</i>',
                         chat_id=call.message.chat.id,
