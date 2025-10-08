@@ -6,6 +6,7 @@ from googleapiclient.discovery import build
 from telebot import types
 import ffmpeg
 import logging
+import random
 
 # إعداد التسجيل
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -105,7 +106,7 @@ class YoutubeModule:
                     if vid == video_id:
                         new_thumbnail = thumb
                         break
-                if new_thumbnail is None:
+                if not Thumb:
                     new_thumbnail = results[0][2]
 
                 markup = types.InlineKeyboardMarkup()
@@ -184,14 +185,9 @@ class YoutubeModule:
         cookies_file_path = 'cookies.txt'
 
         # تحقق من وجود ملف الكوكيز
-        if not self.load_cookies_from_file(cookies_file_path):
-            self.bot.edit_message_text(
-                '<i>ملف الكوكيز غير موجود أو فشل تحميله! يرجى التأكد من cookies.txt.</i>',
-                chat_id=call.message.chat.id,
-                message_id=loading_msg.message_id,
-                parse_mode='HTML'
-            )
-            return
+        if not os.path.exists(cookies_file_path):
+            logging.warning(f"Cookies file {cookies_file_path} not found, proceeding without cookies")
+            cookies_file_path = None
 
         logging.info(f"Attempting to download video {video_id} with cookies file {cookies_file_path}")
 
@@ -200,7 +196,6 @@ class YoutubeModule:
             'timeout': 999999999,
             'retries': 10,
             'cookiefile': cookies_file_path,
-            'cookiesfrombrowser': ('firefox', None, None),  # استخدام Firefox لاستخراج الكوكيز
             'noplaylist': True,
             'quiet': False,
             'no_warnings': False,
@@ -211,16 +206,16 @@ class YoutubeModule:
             'simulate': False,
             'skip_unavailable_fragments': True,
             'youtube_include_dash': True,
-            'player_client': ['web', 'android', 'ios', 'web_music'],  # محاكاة عملاء متعددين
+            'player_client': ['android', 'ios', 'web', 'web_music'],  # محاكاة عملاء متعددين (بدء بـ android)
             'extractor_args': {
                 'youtube': {
-                    'skip': ['authcheck', 'dash'],  # تخطي التحقق من تسجيل الدخول وDASH
-                    'player_client': ['web', 'android', 'ios'],
-                    'lang': 'en',  # تحديد اللغة لتجنب القيود الجغرافية
+                    'skip': ['authcheck', 'dash'],
+                    'player_client': ['android', 'ios', 'web'],
+                    'lang': 'en',
                 }
             },
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0',
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate, br',
@@ -231,9 +226,9 @@ class YoutubeModule:
                 'Sec-Fetch-Site': 'none',
                 'Sec-Fetch-User': '?1',
             },
-            'verbose': True,  # تسجيل تفصيلي للأخطاء
-            'geo_bypass': True,  # تجاوز القيود الجغرافية
-            'geo_bypass_country': 'US',  # محاكاة الموقع الجغرافي للولايات المتحدة
+            'verbose': True,
+            'geo_bypass': True,
+            'geo_bypass_country': 'US',
         }
 
         if download_type == 'audio':
@@ -319,7 +314,7 @@ class YoutubeModule:
                     time.sleep(2)
                     self.bot.delete_message(call.message.chat.id, loading_msg.message_id)
 
-                    time.sleep(10)  # زيادة وقت الانتظار لتجنب الحظر
+                    time.sleep(random.uniform(10, 15))  # تأخير عشوائي لتجنب الحظر
                     try:
                         self.bot.delete_message(call.message.chat.id, call.message.message_id)
                     except Exception:
@@ -329,7 +324,7 @@ class YoutubeModule:
             except Exception as e:
                 logging.error(f"Attempt {attempt + 1} failed for {video_id}: {str(e)}")
                 if attempt < 2:
-                    time.sleep(10)  # زيادة وقت الانتظار بين المحاولات
+                    time.sleep(random.uniform(10, 15))  # تأخير عشوائي
                     continue
                 else:
                     self.bot.edit_message_text(
@@ -346,5 +341,4 @@ class YoutubeModule:
                 lines = [line for line in file.readlines() if not line.startswith('#') and line.strip()]
             logging.info(f"Loaded {len(lines)} cookie lines from {file_path}")
             return True
-        logging.warning(f"Cookies file {file_path} not found")
         return False
