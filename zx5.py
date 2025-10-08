@@ -16,6 +16,8 @@ import logging
 import torch
 import sys
 import imagehash
+import psutil
+import platform
 
 # إعداد التسجيل
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
