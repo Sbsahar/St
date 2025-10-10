@@ -106,7 +106,7 @@ class YoutubeModule:
                     if vid == video_id:
                         new_thumbnail = thumb
                         break
-                if not Thumb:
+                if not new_thumbnail:  # إصلاح الخطأ: استخدام new_thumbnail بدلاً من Thumb
                     new_thumbnail = results[0][2]
 
                 markup = types.InlineKeyboardMarkup()
@@ -188,8 +188,10 @@ class YoutubeModule:
         if not os.path.exists(cookies_file_path):
             logging.warning(f"Cookies file {cookies_file_path} not found, proceeding without cookies")
             cookies_file_path = None
+        else:
+            logging.info(f"Cookies file {cookies_file_path} found, loading cookies")
 
-        logging.info(f"Attempting to download video {video_id} with cookies file {cookies_file_path}")
+        logging.info(f"Attempting to download {download_type} for video {video_id}")
 
         base_ydl_opts = {
             'outtmpl': '%(title)s.%(ext)s',
@@ -206,18 +208,17 @@ class YoutubeModule:
             'simulate': False,
             'skip_unavailable_fragments': True,
             'youtube_include_dash': True,
-            'player_client': ['android', 'ios', 'web', 'web_music'],  # محاكاة عملاء متعددين (بدء بـ android)
+            'player_client': ['android', 'ios', 'web', 'web_music'],
             'extractor_args': {
                 'youtube': {
                     'skip': ['authcheck', 'dash'],
                     'player_client': ['android', 'ios', 'web'],
-                    'lang': 'en',
                 }
             },
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',  # دعم اللغتين الإنجليزية والعربية
                 'Accept-Encoding': 'gzip, deflate, br',
                 'Connection': 'keep-alive',
                 'Upgrade-Insecure-Requests': '1',
@@ -227,8 +228,7 @@ class YoutubeModule:
                 'Sec-Fetch-User': '?1',
             },
             'verbose': True,
-            'geo_bypass': True,
-            'geo_bypass_country': 'US',
+            'geo_bypass': False,  # تعطيل geo_bypass
         }
 
         if download_type == 'audio':
